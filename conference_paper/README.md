@@ -15,7 +15,7 @@ Accepted papers are submitted to IEEE Xplore.
 **Files:**
 - `main.tex`: IEEE conference template (IEEEtran). Currently **5 pages** including references.
 - `analysis/`: scripts that derive the statistics and draw Figs. 1 and 3.
-- `figures/`: the five figures used.
+- `figures/`: the figures used (`fig_leakage_gap.pdf`, `fig_folds_confusion.pdf`, `xai_panel_binary_cnn.png`; Fig. 2 is drawn in TikZ inside `main.tex`). The other PNGs are from the first draft and unused.
 - `references.bib`: the thesis bibliography. Only cited entries are printed.
 - `main.pdf`: compiled draft.
 
