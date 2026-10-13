@@ -1,0 +1,205 @@
+This chapter provides the theoretical foundation of Alzheimer’s disease detection and a review of related research. Section 2.1 introduces basic concepts, medical background, and machine learning techniques used in the field. Section 2.2 discusses existing systems and important research papers similar to our topic. Section 2.3 analyzes their strengths and weaknesses. Section 2.4 identifies research gaps that motivate our proposed CNN–ViT fusion system. Finally, Section 2.5 summarizes the chapter.
+
+\section{Preliminaries}
+This section explains the fundamental theories and concepts needed to understand our project. It covers the medical background of Alzheimer’s Disease, MRI characteristics, preprocessing techniques, and deep-learning models such as CNNs, Vision Transformers, and explainability methods. Definitions, formulas, and technical acronyms used later in the thesis are also introduced.
+
+\subsection{Overview of Alzheimer’s Disease}
+Alzheimer’s Disease (AD) is a progressive neurodegenerative disorder and the leading cause of dementia worldwide~\cite{scheltens2016alzheimer,mckhann2011diagnosis}. It slowly damages memory, reasoning, and daily functioning. As the global population ages, millions of people are at risk, making early detection extremely important for timely treatment, slowing brain decline, and improving quality of life. \\
+Traditionally, diagnosing AD involves memory assessments and manual MRI evaluation by neurologists. This process is slow, subjective, and heavily dependent on expert availability. With the growing number of elderly individuals, there is an urgent need for automated and reliable systems for Alzheimer’s detection.AD develops gradually and spreads through specific brain regions over time: \\
+\textbf{Hippocampus (Memory Center):} 
+The hippocampus is one of the earliest regions affected in Alzheimer’s disease. It plays a central role in forming new memories and supporting spatial navigation. As the disease progresses, the hippocampus undergoes shrinkage, known as hippocampal atrophy, which is a strong early biomarker clearly visible in MRI scans~\cite{frisoni2010clinical,braak1991neuropathological}.
+
+\noindent\textbf{Temporal Lobe:} 
+The temporal lobe is responsible for language processing, facial recognition, and understanding meaning. Degeneration in this region leads to difficulty remembering names, recognizing familiar people, and comprehending spoken or written language. These symptoms commonly appear in the early stages of Alzheimer’s.
+
+\noindent\textbf{Parietal Lobe:} 
+The parietal lobe contributes to spatial awareness, coordination, and the ability to perform daily tasks. When Alzheimer’s affects this region, individuals may struggle with navigation, become disoriented even in familiar environments, and find it difficult to carry out routine activities.
+
+\noindent\textbf{Frontal Lobe:} 
+The frontal lobe governs decision-making, planning, behavior regulation, and social judgment. In later stages of Alzheimer’s disease, deterioration of this area results in personality changes, impaired judgment, reduced problem-solving abilities, and noticeable shifts in behavior.
+
+\noindent\textbf{Cerebral Cortex:} 
+The cerebral cortex, which is responsible for higher-level thinking and reasoning, becomes progressively thinner due to widespread neuron loss. This cortical thinning significantly contributes to cognitive decline and difficulties with planning, reasoning, and complex thought processes.
+
+\noindent\textbf{Ventricles:} 
+The ventricles are fluid-filled spaces within the brain that enlarge as Alzheimer’s progresses. This enlargement occurs because surrounding brain tissues shrink, making ventricular expansion a key MRI indicator of overall brain atrophy and structural degeneration.
+
+\subsection{MRI Characteristics of Alzheimer’s Disease}
+MRI scans provide structural information that strongly correlates with Alzheimer’s progression. Common MRI biomarkers include~\cite{frisoni2010clinical,jack2018niaaa}: \\
+\begin{itemize}
+    \item Hippocampal atrophy
+    \item Enlarged ventricles
+    \item Temporal lobe shrinkage
+    \item Cortical thinning
+    \item Reduced gray matter volume in parietal and frontal lobes
+\end{itemize}
+
+\subsection{Key Concepts, Formulas, and Models}\label{subsec:concepts}
+This subsection introduces the technical machinery used throughout the thesis: MRI preprocessing, the three deep-learning model families (CNN, Vision Transformer, Swin Transformer) and their fusion, transfer learning, the evaluation metrics, and the explainability methods. Because this work operates on \emph{full 3D volumes}, the formulas below are given in their volumetric form.
+
+\subsubsection{MRI Preprocessing}
+Preprocessing standardizes raw scans into a common orientation, physical resolution, and intensity range before they enter the network.
+\begin{enumerate}
+    \item \textbf{Intensity (z-score) normalization} rescales each volume to zero mean and unit variance over its non-zero voxels, removing scanner-dependent brightness offsets:
+    \[x' = \frac{x - \mu}{\sigma}.\]
+    \item \textbf{Spatial resampling and resizing.} Volumes are resampled to an isotropic spacing (here 1.5\,mm) and resized/padded to a fixed tensor (here $128^3$ or $96^3$) so that every input has identical dimensions.
+    \item \textbf{Foreground cropping} removes empty background around the head, focusing the model on tissue.
+    \item \textbf{Data augmentation} (train only) --- random flips, small rotations/scalings, noise, and intensity perturbations --- expands effective dataset size and reduces overfitting.
+\end{enumerate}
+
+\subsubsection{Convolutional Neural Networks (CNNs)}
+CNNs extract local spatial features (edges, textures, shapes) by sliding learnable 3D kernels over the volume, interleaved with non-linear activations (e.g.\ ReLU) and pooling. A 3D convolution at position $(i,j,k)$ is
+\[
+y_{i,j,k} = \sum_{a}\sum_{b}\sum_{c} w_{a,b,c}\, x_{i+a,\,j+b,\,k+c} + b,
+\]
+and stacking many such layers yields a hierarchy from low-level texture to high-level anatomy. This work uses \textbf{DenseNet-121}~\cite{huang2017densely}, in which each layer receives the feature maps of all preceding layers, improving gradient flow and parameter efficiency --- well suited to small medical datasets. CNNs excel at local patterns but have a limited receptive field, so they can miss long-range relationships between distant brain regions.
+
+\subsubsection{Vision Transformers (ViT)}
+ViTs split an input into fixed-size patches, embed each as a token, and model \emph{global} relationships with self-attention~\cite{dosovitskiy2021image,vaswani2017attention}. For a 3D volume of size $H\times W\times D$ and cubic patches of side $p$, the number of tokens is
+\[
+N = \frac{H \times W \times D}{p^{3}},
+\]
+each patch $x_p^{i}$ is linearly projected and given a positional encoding,
+\[
+z_{0} = \left[ x^{1}_{p} E;\, x^{2}_{p} E;\,\ldots;\, x^{N}_{p} E \right] + E_{\text{pos}},
+\]
+and every transformer layer applies multi-head self-attention,
+\[
+Q = XW_{q}, \quad K = XW_{k}, \quad V = XW_{v}, \qquad
+\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^{T}}{\sqrt{d_{k}}}\right)V,
+\]
+where $Q,K,V$ are the query, key, and value projections and $d_k$ the key dimension. ViTs capture how distant regions relate --- useful because AD affects multiple connected areas --- but they have weak inductive bias and are notoriously data-hungry, which (as shown in Chapter~\ref{cha:results}) causes a from-scratch 3D ViT to underperform on a few-hundred-subject cohort.
+
+\subsubsection{Swin Transformer}
+The Swin Transformer restores some of the CNN's locality by computing attention within local \emph{shifted windows} and building a hierarchical, multi-scale feature pyramid. This makes it far more efficient than a plain ViT on 3D data and the strongest transformer option for volumetric medical imaging~\cite{liu2021swin}; here the SwinUNETR-style encoder~\cite{hatamizadeh2021swinunetr} is used as a classification backbone.
+
+\subsubsection{Hybrid CNN--ViT Fusion}
+A hybrid model runs a CNN and a transformer branch on the same volume and fuses their feature vectors, combining local texture with global context. Two fusion strategies are considered: \textbf{late concatenation}, $z = [f_{\text{cnn}} \,\Vert\, f_{\text{vit}}]$, followed by a classifier head; and \textbf{cross-attention}, in which the CNN feature acts as the query attending to the transformer feature. Whether this fusion beats either branch alone is the central research question of this thesis.
+
+\subsubsection{Transfer Learning}
+Because medical datasets are small, weights pretrained on large corpora are often reused. This work evaluates a 3D ResNet~\cite{he2016deep} initialized with \textbf{MedicalNet} weights~\cite{chen2019med3d} (pretrained on 23 medical datasets) against training from scratch; the outcome (Chapter~\ref{cha:results}) is a useful cautionary tale about when medical pretraining does and does not transfer.
+
+\subsubsection{Evaluation Metrics}
+Because the cohort is imbalanced (CN is the majority; MCI the minority), overall accuracy alone is misleading --- a model can look good simply by favouring the majority class --- so per-class and \emph{averaged} F1 scores are central~\cite{powers2011evaluation}. Every metric below is derived from the confusion-matrix counts: true positives ($TP$), true negatives ($TN$), false positives ($FP$), and false negatives ($FN$).
+
+Overall correctness is the \textbf{accuracy}, the fraction of all scans classified correctly:
+\[
+\text{Accuracy} = \frac{TP+TN}{TP+TN+FP+FN}.
+\]
+For each class, \textbf{precision} is the fraction of predicted positives that are correct, \textbf{recall} (sensitivity) is the fraction of actual positives that are recovered, and the \textbf{F1-score} is their harmonic mean --- high only when \emph{both} precision and recall are high:
+\[
+\text{Precision} = \frac{TP}{TP+FP}, \qquad
+\text{Recall} = \frac{TP}{TP+FN}, \qquad
+F1 = \frac{2\,\text{Precision}\cdot\text{Recall}}{\text{Precision}+\text{Recall}}.
+\]
+\textbf{Specificity} (the true-negative rate), important in a screening setting, is
+\[
+\text{Specificity} = \frac{TN}{TN+FP}.
+\]
+For the multi-class task the per-class F1 scores are aggregated in two ways. The \textbf{macro-F1} is the \emph{unweighted} mean of the per-class F1 over the $C$ classes, whereas the \textbf{weighted-F1} averages them in proportion to each class's support $n_c$ (with $N=\sum_c n_c$):
+\[
+\text{macro-F1} = \frac{1}{C}\sum_{c=1}^{C} F1_c, \qquad
+\text{weighted-F1} = \sum_{c=1}^{C} \frac{n_c}{N}\, F1_c.
+\]
+\textbf{Macro-F1 is adopted as the primary metric of this thesis.} Because it gives every class equal weight regardless of how many samples it has, it refuses to let strong performance on the large CN class mask weak performance on the scarce MCI class; weighted-F1 and accuracy, which are both dominated by the majority class, are reported alongside for completeness but are treated as secondary. Finally, the \textbf{ROC-AUC} --- computed one-vs-rest for the three-class task --- summarizes ranking quality across \emph{all} decision thresholds and is therefore threshold-independent. All metrics are computed at both scan level and, by averaging the softmax outputs of a subject's multiple scans, at subject level, the latter being the clinically meaningful figure.
+
+\emph{A note on the ``z-score''.} Where this thesis mentions a \emph{z-score}, it refers to the intensity-normalization transform applied to every MRI volume during preprocessing, $x' = (x-\mu)/\sigma$, which standardizes each voxel intensity to zero mean $\mu$ and unit standard deviation $\sigma$ over the non-zero voxels and removes scanner-dependent brightness differences. It is a data-preparation step (Section~\ref{subsec:concepts}), not a classification metric, and is noted here only to distinguish it from the evaluation metrics above.
+
+\subsubsection{Cross-Validation and Data Leakage}
+A recurring, critical flaw in the literature is \textbf{data leakage}~\cite{wen2020convolutional,yagis2021effect,backstrom2018efficient}: when a dataset is split at the level of individual 2D slices, different slices of the \emph{same} patient land in both training and test sets, so the model effectively memorizes patients and reports inflated accuracy that will not hold on new patients. The correct protocol is a \textbf{subject-level split}, in which all scans of a subject are kept entirely within one fold. This thesis enforces subject-level, stratified \textbf{$k$-fold cross-validation}, reporting mean\,$\pm$\,standard deviation across folds --- a more honest estimate of generalization than a single split.
+
+\subsubsection{Explainable AI (XAI)}
+Interpretability is essential for clinical acceptance. Several complementary methods are used:
+\begin{itemize}
+    \item \textbf{Grad-CAM / Grad-CAM++ / Score-CAM}~\cite{selvaraju2017gradcam,chattopadhay2018gradcampp}: class-discriminative heatmaps from convolutional feature-map gradients; coarse but robust.
+    \item \textbf{Integrated Gradients / SmoothGrad / Saliency}~\cite{sundararajan2017axiomatic,smilkov2017smoothgrad}: voxel-level attributions along the input--baseline path; fine-grained.
+    \item \textbf{Occlusion sensitivity}: measures the drop in confidence when regions are masked.
+    \item \textbf{Attention rollout}~\cite{abnar2020quantifying}: aggregates transformer attention across layers.
+    \item \textbf{LIME / SHAP}~\cite{ribeiro2016why,lundberg2017unified}: model-agnostic local explanations.
+\end{itemize}
+Agreement between these methods on AD-relevant anatomy (hippocampus, medial temporal lobe, ventricles) is evidence that a model has learned biology rather than artefacts.
+
+\section{Related Works / Existing Systems}
+Automated Alzheimer’s Disease (AD) detection using MRI has gained significant attention as deep learning models continue to improve diagnostic accuracy. Recent studies have adopted Vision Transformers (ViT), recurrent networks, and hybrid attention-based architectures to classify AD stages more effectively. This section reviews two key studies relevant to our research, detailing their contributions, methodologies, results, and limitations.\\
+
+The study in \cite{kurniasari2024transforming} explored the use of Vision Transformers (ViTs) for MRI-based Alzheimer’s classification using a ViT-Base Patch-16 model across four stages: ND, VMD, MD, and MOD. The authors applied standard preprocessing, including intensity normalization and resizing to 224×224, before treating MRI slices as patch tokens processed through multi-head self-attention. The model achieved 98.19\% accuracy, showing ViTs’ strength in capturing global structural features. However, the approach relied solely on 2D slices rather than full 3D MRI volumes, limiting volumetric understanding. The dataset size was also small, and early-stage differentiation (ND vs. VMD) remained challenging. Additionally, no explainability methods (e.g., Grad-CAM) were used, making the model’s decisions difficult to interpret. Overall, the study demonstrates ViT’s potential but highlights key gaps in data depth, volumetric modeling, and interpretability.\\
+
+The study in \cite{mahim2024unlocking} introduced a hybrid ViT–GRU model for Alzheimer’s classification, evaluating it across multiple datasets including Kaggle (binary and four-class) and ADNI (three-class). The pipeline used standard preprocessing before extracting ViT patch embeddings, which were then passed through a GRU to capture sequential dependencies. Explainability was incorporated via LIME, SHAP, and attention maps. The model achieved excellent results—99.69\% (binary), 99.53\% (four-class), and 99.26\% (ADNI)—showing the strength of combining transformer-based spatial features with recurrent temporal modeling. However, the approach remained computationally heavy, relied on 2D slices rather than full 3D MRI volumes, and faced class imbalance issues in early-stage categories. Overall, the study presents a strong hybrid architecture but still lacks volumetric modeling and efficient scalability.\\
+
+The study in \cite{alsaeed2022brain} proposed a hybrid approach where ResNet-50 is used for CNN-based feature extraction and the resulting features are classified using Softmax, SVM, and Random Forest. The MRI data (from ADNI and MIRIAD) underwent skull stripping, smoothing, resizing, augmentation, and conversion of 3D volumes into 2D slices before feature extraction. Among the classifiers, ResNet-50 + Softmax achieved the best results, reaching 99\% accuracy on ADNI and 96\% on MIRIAD, outperforming SVM and Random Forest by a large margin. The study shows that Softmax aligns best with the deep features learned by ResNet-50, producing more stable decision boundaries. However, the method still relies on 2D slices rather than full 3D MRI volumes, and the use of classical ML classifiers limits end-to-end optimization.\\
+
+The study in \cite{alshayeji2024alzheimer} proposed a ViT-based model for multi-class Alzheimer’s detection using T1-weighted MRI scans across ND, VMD, MD, and MoD categories. After normalization, resizing, skull removal, and augmentation, the authors used the ViT-Base-Patch16-224 architecture to divide MRI slices into patches and process them through transformer encoder layers, enabling strong global feature modeling. The system achieved 99.83\% accuracy, with sensitivity, specificity, and F1-scores above 99\% for most classes, showing particularly strong performance in identifying mild and moderate dementia. Although early-stage separation (ND vs. VMD) remained slightly more challenging, the results were still above 98\%. Overall, the study demonstrates ViT’s effectiveness for multi-class AD detection, though it remains limited to 2D slices rather than full 3D volumes.\\
+
+The study in \cite{pandey2025leveraging} proposed a ViT-based model for four-class Alzheimer’s classification using a small Kaggle MRI dataset of 576 images. After cropping, resizing to 224×224, normalization, and augmentation, the authors used a ViT-Base Patch16 model to process MRI slices as patch embeddings through multi-head self-attention, followed by a Softmax classifier. The model achieved around 71\% accuracy, performing better on ND and MOD classes than on VMD and MD, where subtle structural differences caused misclassification. Although the ViT outperformed CNN baselines like VGG19 and DenseNet169, the study was constrained by limited and imbalanced data, reliance on 2D slices, and the absence of explainability techniques. Overall, the work shows the potential of ViT for MRI-based AD detection but highlights the need for larger datasets and more advanced architectures for reliable performance.\\
+
+The study in \cite{akan2025leveraging} proposed an AI framework combining MRI synthesis, deep learning, and interpretability techniques to improve early-stage Alzheimer’s prediction using ADNI data. The authors generated synthetic MRI scans with GANs to address class imbalance and applied preprocessing steps such as bias correction, skull stripping, and spatial normalization. A deep-learning classifier was then used alongside Grad-CAM to identify subtle structural changes in regions vulnerable to AD. The inclusion of synthetic data improved early-risk detection, and the explainability analysis highlighted clinically meaningful areas. However, the approach depended heavily on synthetic image quality, suffered from inconsistency in GAN outputs, and required significant computational resources for generating 3D MRI volumes. Overall, the study shows the promise of combining generative modeling with interpretable deep learning but also underscores its practical limitations.\\
+
+The study in \cite{aghaei2025integrated} introduced a multi-stage framework for long-term Alzheimer’s progression prediction using longitudinal ADNI MRI data. The pipeline combined ensemble transfer learning for CN→MCI prediction, a 3D ViT-based GAN for generating synthetic future MRI scans, and Grad-CAM–guided ROI extraction for MCI→AD classification, ultimately estimating CN→AD risk through probability fusion. The model achieved 0.85 accuracy and 0.86 F1-score, outperforming CNN-only baselines and providing interpretable ROI visualizations. However, the approach was limited by the small number of progressive CN subjects, the heavy computational demands of the 3D ViT-GAN, and its dependence on two-year intervals due to restricted longitudinal data. Overall, the study shows the potential of combining 3D deep learning and generative modeling for progression forecasting but highlights scalability and data limitations.\\
+
+The study in \cite{el2024novel} proposed a dual-branch CNN for multi-class Alzheimer’s classification, where 3×3 and 5×5 convolutional branches captured fine and coarse structural features before concatenation and Softmax classification. Trained on ADNI MRI data with augmentation and ADASYN oversampling, the model achieved strong results—99.43\% (3-way), 99.57\% (4-way), and 99.30\% (5-way)—outperforming ResNet, Xception, and Inception-V3. Grad-CAM visualizations highlighted clinically relevant regions such as hippocampal and cortical atrophy. However, the method relied on 2D slices, required substantial computational resources, and was trained on a single dataset, limiting generalizability. Overall, the work demonstrates that multi-scale CNN branches can significantly enhance MRI-based AD detection.\\
+
+The study in \cite{saoud2024explainable} proposed an ROI-based 3D ViT ensemble for early Alzheimer’s detection, training 138 region-specific ViT models and combining their outputs using a DBN meta-classifier. Evaluated on ADNI MRI data, the framework achieved strong results in binary tasks—90\% accuracy (AD vs CN) and 94\% (pMCI vs sMCI)—while three-class performance remained moderate at 60\%. The ROI-based approach improved interpretability by highlighting key regions such as the hippocampus, amygdala, and insula. However, the method was extremely computationally heavy and relied on precise ROI segmentation, which can limit scalability and robustness. Overall, the study shows the potential of region-wise 3D ViT models but also reveals challenges in multiclass generalization and efficiency.\\
+
+The study in \cite{mora2023classification} presented a ViT-Base Patch-16 model for four-class Alzheimer’s classification using the OASIS-1 MRI dataset. After normalization, resizing to 224×224, and contrast enhancement, MRI slices were divided into fixed-size patches and processed using multi-head self-attention. The model achieved 97.08\% accuracy, outperforming CNN baselines due to its ability to capture global spatial relationships. However, it relied solely on 2D slices, limiting volumetric context, and the small dataset led to weaker performance in early-stage differentiation (ND vs VMD). The absence of explainability tools further reduced clinical interpretability. Overall, the work shows strong ViT capability for MRI feature extraction but highlights ongoing challenges in dataset size, 3D modeling, and explainability.\\
+
+The study in \cite{velu2025design} proposed a hybrid EfficientNet-B0 + Swin Transformer model (with DCGAN-based augmentation) for Alzheimer's disease prediction using structural MRI from the OASIS dataset, augmented to 2{,}600 images per class. After standard preprocessing and augmentation, the CNN extracted low-level spatial features while the Swin Transformer applied shifted-window attention to capture broader contextual information. The model achieved 95.34\% accuracy, outperforming CNN-only baselines, but relied on 2D slices, was not validated on any external dataset, and its DCGAN-synthesized images risk distorting the data distribution. The authors also noted weaker performance in early-stage discrimination and the absence of interpretability methods, highlighting ongoing challenges in dataset size, 3D structural modeling, and explainability.
+
+The study in \cite{bravo2024systematic} reviewed 44 deep learning models—including 3D CNNs, Vision Transformers, and hybrid CNN–ViT architectures—for Alzheimer’s disease classification using 3D MRI. The authors found that CNNs remain dominant, with models like 3D-sVoxCNN and BG-3DM2F achieving accuracies above 98\% by capturing fine-grained anatomical changes. ViT-based models showed rapidly improving performance, often exceeding 95\% due to their strength in modeling global structural patterns, while hybrid systems effectively combined both feature types and reached 90–97\% accuracy. The review concludes that all three model families are highly effective but still face challenges related to dataset imbalance, limited multimodal data, and inconsistent evaluation practices.
+
+
+\newpage
+\section{Comparative Analysis of Related Works}
+\begin{sloppypar}
+\hyphenpenalty=50
+\exhyphenpenalty=50
+\hyphenchar\font=`\-
+\begin{longtable}{|p{2.6cm}|p{2.3cm}|p{2.4cm}|p{3.3cm}|p{2.3cm}|}
+\caption{Comparative Analysis of Related Works}\\
+\hline
+\textbf{Paper} & \textbf{Model Type Used} & \textbf{Dataset Used} & \textbf{Limitations} & \textbf{Accuracy / Performance} \\
+\hline
+Pandey et al. (2025)~\cite{pandey2025leveraging} & Pretrained ViT & Kaggle Alzheimer MRI (5760 images) & Strong dataset imbalance; no Grad-CAM explainability; not a true 3D volumetric MRI approach & Train 82\%, Val 72\% \\
+\hline
+Yagis et al. (2021)~\cite{yagis2021effect} & 2D CNNs --- VGG16 (frozen + fine-tuned) & ADNI (100 AD + 100 CN), OASIS, PPMI & Slice-level train/test split leaks slices of the same subject into both sets & Slice-level 95.2--96.9\%; subject-level 66.5--70.1\% \\
+\hline
+Aghaei \& Moghaddam (2025)~\cite{aghaei2025integrated} & Ensemble Transfer Learning + 3D models + ViT-GAN + 3D-CNN & ADNI T1-weighted MRI + demographic data & Limited progressive CN samples; high computational cost due to 3D ViT-GAN & Accuracy 0.85; F1 0.86 \\
+\hline
+Wen et al. (2020)~\cite{wen2020convolutional} & 2D-slice, 3D-patch, ROI \& 3D-subject CNNs & ADNI + AIBL (T1-weighted MRI) & Survey found $>$50\% of reviewed papers had data leakage (slice-level / augmentation); results not reproducible & Subject-level AD-vs-CN 85--88\%; leaky pipelines overestimate \\
+\hline
+Saoud \& AlMarzouqi (2024)~\cite{saoud2024explainable} & 138 $\times$ 3D ViTs + Deep Belief Network ensemble & MALPEM-ADNI (532 MRI) & Small dataset; slice-level split; only 60\% accuracy for 3-class & AD-vs-CN 90\%; sMCI-vs-pMCI AUROC 95\% \\
+\hline
+Velu \& Jaisankar (2025)~\cite{velu2025design} & EfficientNet-B0 + Swin Transformer + DCGAN & OASIS (augmented to 2600/class) & 2D slice-based; no external dataset testing; synthetic-data bias due to DCGAN & 95.34\% accuracy \\
+\hline
+\end{longtable}
+\end{sloppypar}
+
+\section{Research Gap / Limitations of Existing Methods}
+The reviewed works report very high accuracies, but a closer reading of their evaluation protocols reveals several limitations that this thesis directly targets:
+\begin{enumerate}
+    \item \textbf{Evaluation is often not leakage-free.} The majority of the highest-scoring systems (98--99\%) split the data at the level of 2D slices or use the curated Kaggle 2D set, allowing a patient's slices to appear in both training and testing. The one clearly subject-level comparator \cite{saoud2024explainable} reports a far more sober $90\%$ (AD-vs-CN) and $60\%$ (three-class), suggesting the headline numbers are inflated by leakage. A rigorous, subject-level benchmark is therefore missing.
+    \item \textbf{Full-volume 3D CNN--ViT fusion is underexplored.} Most studies use either 2D slices or a single model family; genuine 3D fusion of local (CNN) and global (transformer) features on whole volumes, evaluated fairly against single-model baselines, is rare.
+    \item \textbf{The MCI / early stage is the real bottleneck} and is frequently sidestepped by reporting only binary or slice-level multi-class numbers, obscuring how hard the transitional stage actually is.
+    \item \textbf{Explainability is inconsistently applied}, especially for transformer models, and rarely reported honestly with respect to preprocessing (e.g.\ whether the volumes are skull-stripped or atlas-registered).
+    \item \textbf{Transformer models are computationally heavy and data-hungry}, and their behaviour on small 3D cohorts --- where they often fail without large-scale pretraining --- is seldom reported as an explicit finding.
+\end{enumerate}
+These gaps motivate the design of this thesis: a single-source, subject-level, leakage-free benchmark that fairly compares single and hybrid 3D architectures and reports honest accuracies together with anatomically grounded explanations.
+
+\section{Summary}
+This chapter presented the medical and technical background for Alzheimer's detection from MRI --- AD pathology and affected regions, MRI biomarkers, 3D preprocessing, the CNN / ViT / Swin / hybrid model families, transfer learning, evaluation metrics, the crucial issue of data leakage, and explainability methods. It then reviewed twelve recent studies and compared their models, datasets, strengths, and limitations. The analysis exposed a key gap: reported accuracies are often inflated by slice-level leakage, and fair subject-level comparisons of 3D single-vs-hybrid models are scarce. This directly motivates the proposed CNN--ViT fusion system and the leakage-free evaluation protocol developed in the following chapters.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

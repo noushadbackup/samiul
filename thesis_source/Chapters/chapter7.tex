@@ -1,0 +1,152 @@
+
+This chapter outlines how the project complies with relevant engineering standards, ethical guidelines, and professional practices. It also highlights the design constraints encountered and demonstrates coverage of Complex Engineering Problems (CEP) and Complex Engineering Activities (CEA) through mapping tables aligned with BAETE/ABET accreditation requirements.
+\section{Compliance with Standards and Professional Practice}
+This project was designed following internationally recognized software, data handling, and ethical standards. The system processes sensitive medical data (MRI scans) and applies deep learning models (3D CNN and Vision Transformer) for Alzheimer’s disease prediction; therefore, compliance with professional engineering practices was essential.\\
+The design also incorporates considerations of data privacy, safety, environmental sustainability, fairness in algorithms, and responsible use of computing resources.
+\subsection{Software Standards}
+The software development process follows the following standards:\\
+\textbf{IEEE 829 (Software Test Documentation Standard)}\\
+Requirements → Design → Implementation → Testing → Deployment.\\
+Our project followed these phases to structure the deep learning workflow.\\
+\textbf{IEEE 829 (ISO/IEC 9126 (Software Quality Model))}\\
+Ensured :\\
+Reliability → Stability of ML model training and validation\\
+Usability → Clear dataset documentation and reproducible scripts\\
+Efficiency → Resource-aware training with optimized GPU usage\\
+\textbf{IEEE 829 (ISO/IEC 25010)}\\
+Performance efficiency measured through:
+\begin{itemize}
+    \item Training time
+    \item Memory usage (crucial for 3D MRI)
+    \item Model inference latency
+\end{itemize}
+\subsection{Hardware Standards}
+Although the project is primarily software-based, medical imaging hardware plays a role because the datasets use MRI scanners. Relevant standards include:\\
+DICOM Standard (Digital Imaging and Communications in Medicine\\
+Ensures :\\
+Correct metadata handling.\\
+Consistency of voxel dimensions.\\
+Image orientation and acquisition parameters.\\
+\textbf{IEEE 11073 (Medical Device Communication Standards)}\\
+Ensures interoperability and safe data communication from clinical equipment.
+\textbf{High-Performance Computing (HPC) Safety Standards}\\
+GPU usage adheres to:\\
+Safe VRAM allocation.
+Thermal management (depending on cloud/local hardware).
+
+\subsection{Other Standards}
+\textbf{Data Privacy \& Research Ethics}\\
+Follows HIPAA principles for medical data anonymity.
+The ADNI dataset is ethically approved and fully anonymized, and is accessed under an academic data-use agreement.\\
+\textbf{AI Ethics \& Fairness Standards}\\
+IEEE 7000 (Ethical AI Design)
+EU AI Risk Management Guidelines (general awareness)\\
+Practice followed:\\
+Avoiding model bias through balanced datasets
+Ensuring transparent reporting
+Avoiding misuse of predictive medical information
+
+\section{Design Constraints}
+
+\subsection{Ethical and Professional Responsibilities}
+This project follows established ethical and professional standards to ensure responsible development and fair use of the system. All results are reported honestly, without any form of exaggeration or falsification of accuracy or performance outcomes. The study also respects intellectual property rights by properly citing the ADNI dataset used. To protect privacy, all MRI scans are fully anonymized, and no personal or identifiable information is included. The model is trained carefully to reduce algorithmic bias, especially by class-weighting the minority class (MCI) so that the imbalance in the cohort does not skew the predictions. Additionally, the system is developed with responsible machine learning practices in mind, and it is clearly stated that the model is intended only for research purposes and should not be used as a clinical diagnostic tool.
+\subsection{Environmental and Sustainability Considerations}
+The design prioritizes sustainability by optimizing computational and environmental impact:\\
+\textbf{Efficient GPU Usage}\\
+Minimizing training epochs using early stopping and batch normalization.\\
+\textbf{Energy-efficient Model Architecture}\\
+Using optimized 3D CNN layers
+Choosing ViT variants that reduce computational load\\
+\textbf{Dataset Storage Optimization}\\
+Compressing MRI volumes while preserving spatial fidelity.\\
+\textbf{Cloud Sustainability Awareness}\\
+ If using cloud GPU:\\
+Providers like AWS, Google Cloud use carbon-neutral infrastructure.\\
+\textbf{Reducing Redundant Computation}\\
+Reuse preprocessed volumes.
+Cache intermediate results (e.g., normalized 3D volumes)
+
+\subsection{Health and Safety Considerations}
+Although this is primarily a software-based project, several important health and safety aspects were carefully considered. The MRI data used in the study is completely anonymized and sourced from ethically approved datasets, ensuring no exposure to sensitive patient information. In cases where laboratory resources such as GPU machines were used, standard safety practices were followed, including preventing overheating, maintaining proper ventilation, and ensuring secure electrical connections. User safety was also taken into account, as the system does not make autonomous clinical decisions and functions only as an analytical support tool rather than a medical diagnostic system. Additionally, the project complies with medical data handling standards by avoiding raw clinical identifiers and ensuring that all datasets are securely stored and encrypted during use.
+
+\section{Complex Engineering Problem (CEP) Coverage}
+This project meets the characteristics of a Complex Engineering Problem (CEP) through its involvement with large-scale, high-dimensional MRI data; advanced AI models; conflicting technical constraints; and multi-disciplinary medical–engineering aspects.\\
+Below is the required BAETE CEP mapping.
+\begin{sloppypar}
+\hyphenpenalty=50
+\exhyphenpenalty=50
+\hyphenchar\font=`\-
+\begin{longtable}{|p{3.2cm}|p{6.6cm}|p{2.1cm}|p{2.1cm}|}
+\caption{Complex Engineering Problems (Ps): mapping with Knowledge Profiles (K), CLOs, and PLOs}\\
+\hline
+\textbf{Ps Attribute} & \textbf{How Ps are Addressed in the Project} & \textbf{CLOs} & \textbf{PLOs}\\
+\hline
+P1: Depth of Knowledge Required & Requires advanced knowledge of ML, 3D CNN/ViT architectures, mathematical modeling, and 3D MRI preprocessing. [K3, K4, K6, K8] & CLO1, CLO2, CLO7 & PLO1, PLO2, PLO5\\
+\hline
+P3: Depth of Analysis Required & The problem has no obvious solution and requires custom architecture design and fusion strategies. [K3] & CLO2, CLO7 & PLO2, PLO3, PLO4\\
+\hline
+P4: Familiarity of Issues & Involves unfamiliar 3D medical imaging tasks such as MRI preprocessing, Alzheimer's classification, subject-level evaluation, and XAI interpretation. [K4, K6, K8] & CLO1, CLO7 & PLO4, PLO5, PLO12\\
+\hline
+P6: Stakeholder Involvement & Various stakeholders are involved --- healthcare professionals and patients --- to evaluate the model. [K5, K8] & CLO2, CLO5, CLO6 & PLO6, PLO8, PLO10\\
+\hline
+P7: Interdependence & Multiple interdependent modules --- preprocessing, 3D feature extraction, fusion, classification, evaluation, and XAI --- work together as one complete system pipeline. [K5, K6] & CLO3, CLO7 & PLO3, PLO5\\
+\hline
+\end{longtable}
+\end{sloppypar}
+
+
+\section{Complex Engineering Activities (CEA) Coverage}
+The project includes complex engineering activities such as system design, experimentation, computational modeling, and performance evaluation.
+\begin{sloppypar}
+\hyphenpenalty=50
+\exhyphenpenalty=50
+\hyphenchar\font=`\-
+\begin{longtable}{|p{3.2cm}|p{6.6cm}|p{2.1cm}|p{2.1cm}|}
+\caption{Complex Engineering Activities (As): mapping with CLOs and PLOs}\\
+\hline
+\textbf{As Attribute} & \textbf{How As are Addressed in the Project} & \textbf{CLOs} & \textbf{PLOs}\\
+\hline
+A1: Range of Resources & Used the ADNI MRI dataset, GPU hardware, PyTorch, and medical-imaging tools such as NiBabel/MONAI. & CLO2, CLO7 & PLO3, PLO5\\
+\hline
+A2: Level of Interaction & Integrated 3D MRI preprocessing, model training, feature extraction, evaluation, and XAI into one workflow. & CLO2, CLO7 & PLO2, PLO3, PLO5\\
+\hline
+A4: Consequences for Society and Environment & Supports Alzheimer's decision-support research by assisting clinicians and improving model transparency. & CLO4, CLO5 & PLO6, PLO8\\
+\hline
+A5: Familiarity & Extends beyond prior experience through 3D MRI processing, Transformer-based modeling, subject-level evaluation, and XAI. & CLO1, CLO7 & PLO1, PLO4, PLO12\\
+\hline
+\end{longtable}
+\end{sloppypar}
+
+
+\section{Summary}
+This chapter demonstrated how the project fulfills the following:\\
+\textbf{Knowledge Profiles (K1–K8)}\\
+\begin{itemize}
+    \item K1: The project applies natural science knowledge through understanding MRI physics, brain anatomy, and       Alzheimer’s pathology.
+    \item K2: The work uses mathematics, statistics, and computational science for deep learning, voxel              processing, normalization, and performance evaluation.
+    \item K3: Core engineering fundamentals such as convolution theory, transformer attention mechanisms, and               algorithmic modeling are covered.
+    \item K4: Specialist engineering knowledge of 3D medical image analysis, transformer architectures, and volumetric preprocessing is applied.
+    \item K5: The project involves engineering design of a functional hybrid 3D CNN–ViT architecture and a full MRI processing pipeline.
+    \item K6: It will use engineering practice tools including Python, PyTorch, MONAI, GPU computing, and medical imaging libraries.
+    \item K7: The system raises healthcare, ethical, and societal considerations involving medical data privacy,     clinical impact, and responsible AI.
+    \item K8: The project require studying research literature including CNN, transformers, MRI-based Alzheimer's 
+\end{itemize}
+\textbf{Complex Engineering Problems (P1–P7)}\\
+The proposed research on Alzheimer’s disease detection using 3D MRI scans qualifies as a Complex Engineering Problem due to several contributing factors. It requires in-depth knowledge of neuroimaging, volumetric preprocessing, and advanced deep learning architectures, justifying the inclusion of P1. The project also involves multiple stakeholders --- clinicians who assess the model's reliability and its explanations --- corresponding to P6. Developing a hybrid 3D CNN–Vision Transformer model demands significant analytical depth and original design decisions, fulfilling P3, while the unfamiliar nature of medical imaging analysis supports P4. Additionally, the project consists of multiple interdependent modules—ranging from data preprocessing to feature extraction, fusion, and explainability—corresponding to P7. Together, these attributes demonstrate that the project involves multifaceted engineering complexity beyond routine problem-solving.\\
+\textbf{Complex Engineering Activities (A1–A5)}\\
+The study also satisfies several criteria for Complex Engineering Activities. It makes use of diverse computational, informational, and technological resources, including a large-scale 3D MRI dataset, GPU hardware, and specialized imaging and deep learning libraries, which reflect A1. The project requires resolving complex interactions between preprocessing workflows, model components, and dataset variations, thereby involving A2. The potential impact on early Alzheimer detection and healthcare decision-making highlights the broader societal significance described in A4. Finally, the project incorporates advanced engineering tasks that extend beyond typical undergraduate experience, fulfilling A5. These characteristics collectively demonstrate that the work constitutes a complex engineering activity involving creativity, technical depth, and impactful application.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

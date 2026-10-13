@@ -1,0 +1,62 @@
+This chapter presents an overview of the research problem, motivation, and goals underlying the development of a deep-learning–based Alzheimer's disease detection system using 3D MRI data. It outlines the clinical significance of early Alzheimer's diagnosis, the challenges faced by existing methods, and the rationale for adopting and benchmarking a hybrid 3D CNN–Vision Transformer approach under a rigorous, leakage-free evaluation. The chapter also defines the problem statement, research objectives, research questions, scope of the work, expected outcomes, and the broader societal, ethical, and healthcare impacts associated with this project.
+\section{Background and Motivation}
+Alzheimer's disease (AD) is a progressive neurodegenerative disorder that affects memory, cognition, and daily functioning~\cite{scheltens2016alzheimer}. With the global rise in aging populations, Alzheimer's has become a major medical and social challenge. Early and accurate diagnosis is essential, as timely intervention can slow cognitive decline and improve patient outcomes. Structural Magnetic Resonance Imaging (MRI) is one of the most effective non-invasive modalities for identifying early brain changes, particularly in regions such as the hippocampus and medial temporal lobe.
+
+Recent advances in deep learning—especially Convolutional Neural Networks (CNNs) and Vision Transformers (ViTs)—have shown great promise in automated medical image analysis~\cite{lecun2015deep,litjens2017survey}. However, two problems recur in the literature. First, most existing Alzheimer's classification systems operate on 2D slices, which discards the full volumetric context of the scan. Second, and more seriously, many report very high accuracies obtained by splitting the data at the level of individual slices, so that different slices of the \emph{same} patient appear in both training and testing; this data leakage inflates results and makes them unreliable on new patients~\cite{wen2020convolutional,yagis2021effect}. Distinguishing the transitional mild-cognitive-impairment (MCI) stage from cognitively normal (CN) and full AD remains genuinely hard. These issues motivate a fully volumetric, hybrid deep-learning framework evaluated under a strict subject-level protocol.
+
+This research builds and benchmarks a family of 3D MRI-based models—a 3D CNN, a pretrained 3D ResNet, a 3D ViT, a Swin Transformer, and a hybrid that fuses a 3D CNN (local spatial features) with a 3D ViT (global contextual features)—on the ADNI dataset, and uses Grad-CAM and related 3D explainability methods for interpretability. The central question is whether such hybridization measurably improves Alzheimer's classification over single models when the evaluation is honest.
+
+\section{Problem Statement}
+Despite significant progress in deep learning for Alzheimer's disease detection, several challenges remain. Most models rely on 2D MRI slices, losing three-dimensional spatial context. CNN-based architectures capture local features well but model global relationships weakly, whereas transformer-only approaches need large datasets and struggle on small medical cohorts. Crucially, a large share of the reported high accuracies stem from evaluation protocols that leak patient data across the train/test boundary, so the numbers do not reflect real generalization. The lack of interpretability further reduces clinical trust, and class imbalance (especially the scarce MCI group) hinders multi-class performance.\\
+There is therefore a need for a system that (i) processes full 3D MRI volumes, (ii) combines local and global feature extraction, (iii) is evaluated \emph{subject-level} so results are trustworthy, and (iv) provides interpretable outputs.\\
+Accordingly, this work proposes and benchmarks a hybrid 3D CNN–ViT architecture against strong single-model baselines, on both binary (CN-vs-AD) and three-class (CN/MCI/AD) tasks, with Grad-CAM-based explainability.
+
+\section{Objectives of the Project}
+\begin{enumerate}
+    \item To develop a hybrid 3D CNN + 3D Vision Transformer model that fuses local and global structural features for Alzheimer's classification from full 3D MRI volumes.
+    \item To benchmark this hybrid against strong single-model baselines (3D CNN, pretrained 3D ResNet, 3D ViT, Swin Transformer) on the same ADNI data and subject-level splits, and thereby determine whether hybridization actually improves accuracy.
+    \item To evaluate both the binary CN-vs-AD task and the harder three-class CN/MCI/AD task under a leakage-free, subject-level five-fold protocol.
+    \item To integrate 3D Grad-CAM and related explainability methods for visualizing the brain regions influencing predictions.
+\end{enumerate}
+
+\section{Research Questions / Hypotheses}
+This project is guided by the following research questions:
+\begin{itemize}
+    \item \textbf{RQ1:} Does fusing local feature extraction (3D CNN) with global contextual modeling (3D Vision Transformer) improve Alzheimer's classification accuracy over single-model architectures, under a subject-level, leakage-free evaluation?
+    \item \textbf{RQ2:} Can 3D Grad-CAM / attribution-based interpretability provide clinically meaningful and anatomically consistent explanations for the model's decisions?
+\end{itemize}
+
+\section{Scope of the Work}
+The scope covers 3D T1-weighted MRI volumes from the ADNI dataset and the design, training, and evaluation of a hybrid 3D CNN–ViT architecture alongside single-model baselines. Two classification tasks are addressed: binary CN-vs-AD and three-class CN/MCI/AD. All models are compared on identical subject-level five-fold splits, with local and global explainability. The study focuses exclusively on structural 3D MRI–based classification and does not extend to clinical deployment; other modalities (e.g., PET, cognitive scores) and additional datasets are left to future work.
+
+\section{Expected Outcomes}
+The expected outcomes of this project include:
+\begin{enumerate}
+    \item A working hybrid 3D CNN–ViT model and a set of single-model baselines for Alzheimer's classification.
+    \item A rigorous, leakage-free subject-level benchmark quantifying whether the hybrid outperforms single models on binary and three-class tasks.
+    \item A reproducible 3D MRI preprocessing and training pipeline.
+    \item Visual explanations using Grad-CAM and related methods, highlighting the affected brain regions.
+\end{enumerate}
+
+\section{Impacts of the Project}
+\subsection{Impact on Societal and Cultural Issues}
+The project promotes early diagnosis and awareness of Alzheimer's, helping families and caregivers prepare for long-term support. It contributes to reducing stigma through improved understanding and detection. By providing automated diagnostic support, the system also reduces dependency on specialized radiologists, making cognitive health screening more accessible.
+
+\subsection{Impact on Health, Safety, and Legal Issues}
+The project promotes safer clinical decision support by providing transparent, explainable predictions. It is intended strictly as a research and decision-support tool, not an autonomous diagnostic device. Handling MRI data raises privacy and ethical concerns, addressed here through the use of already-anonymized, ethically approved data and honest reporting of performance.
+
+\subsection{Impact on Environment and Sustainability Issues}
+The design favours computational efficiency—cached preprocessing, mixed-precision training on a single GPU, and compact models—reducing energy use compared with large, transformer-only systems trained on massive data.
+
+\section{Report Organization}
+The report is structured as follows:
+\begin{enumerate}
+    \item \textbf{Chapter 1} introduces the project: background, motivation, problem statement, objectives, research questions, scope, expected outcomes, and impacts.
+    \item \textbf{Chapter 2} provides the theoretical background and literature review—Alzheimer's disease, MRI biomarkers, CNN/ViT fundamentals, and a comparative analysis of related work with the research gap.
+    \item \textbf{Chapter 3} describes the system analysis and architectural design: requirements, the proposed 3D CNN–ViT architecture, design diagrams, algorithmic flow, and design rationale.
+    \item \textbf{Chapter 4} details the methodology and implementation: the ADNI dataset and curation, the subject-level evaluation protocol, preprocessing, the five 3D models, and the training recipe.
+    \item \textbf{Chapter 5} presents the experimental results and analysis: binary and three-class benchmarks, the single-vs-hybrid comparison, transfer-learning and transformer findings, explainability, and a comparison with the literature.
+    \item \textbf{Chapter 6} presents project planning, timeline, and budget.
+    \item \textbf{Chapter 7} outlines the standards, design constraints, and professional practices, including CEP/CEA coverage.
+    \item \textbf{Chapter 8} concludes the thesis—key findings, contributions, limitations, and future work.
+\end{enumerate}

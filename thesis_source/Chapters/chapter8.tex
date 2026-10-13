@@ -1,0 +1,48 @@
+
+This chapter presents the concluding remarks of the study and outlines directions for future work. It summarizes the objectives, methodological contributions, and experimental findings of the Alzheimer's detection framework, reflects on what the results actually show, acknowledges the limitations encountered, and proposes enhancements to guide further research.
+\section{Summary of the Work}
+This research developed and benchmarked a family of fully three-dimensional deep-learning models for Alzheimer's Disease classification from structural MRI. Working on the ADNI dataset (1{,}132 T1-weighted volumes from 395 subjects), five architectures—a 3D DenseNet CNN, a MedicalNet-pretrained 3D ResNet, a 3D Vision Transformer, a Swin Transformer, and the proposed hybrid 3D CNN–ViT—were trained on an identical pipeline and compared under a strict subject-level five-fold protocol. Two tasks were studied: binary CN-vs-AD and three-class CN/MCI/AD. The design deliberately prioritized an \emph{honest}, leakage-free comparison over a headline accuracy number, and integrated 3D Grad-CAM and related attribution methods for interpretability. The study demonstrates that combining local CNN features with global transformer context yields the best binary result, while quantifying exactly how much—and how little—that hybridization helps.
+
+\section{Key Findings and Contributions}
+The experiments produced several clear findings. The proposed \textbf{hybrid 3D CNN–ViT achieved the best binary CN-vs-AD performance ($82.2\%$ accuracy, macro-F1 $0.80$)}, but its margin over a strong from-scratch 3D DenseNet ($81.0\%$) was within one standard deviation—so hybridization gives a small, consistent edge rather than a dramatic gain. On the three-class task the honest ceiling was $\sim\!57.7\%$ (Swin), with MCI, the transitional stage, acting as the dominant source of confusion. Two instructive negative results emerged: the MedicalNet-\emph{pretrained} ResNet underperformed the from-scratch CNN and was highly unstable across folds—traced partly to an early-stopping artifact rather than the architecture itself—and a from-scratch 3D ViT collapsed to near-chance on the three-class task, confirming that data-hungry transformers need large-scale pretraining.
+
+The contributions of this study are:
+\begin{enumerate}
+    \item \textbf{A rigorous, leakage-free benchmark.} A single-source ADNI cohort evaluated with subject-level five-fold cross-validation and an identical pipeline across all models, giving a genuinely fair single-vs-hybrid comparison—in contrast to the slice-level, leakage-prone evaluations that dominate the literature~\cite{wen2020convolutional,yagis2021effect}.
+    \item \textbf{The hybrid 3D CNN–ViT design and its honest assessment.} The 3D CNN branch learns localized textures (hippocampal shrinkage, cortical thinning, ventricular enlargement) while the 3D ViT branch models long-range dependencies; late-concatenation fusion of the two is shown to give the best—if modest—binary result.
+    \item \textbf{An explainability study.} 3D Grad-CAM, Integrated Gradients, and attention rollout localize model attention to medial-temporal and ventricular regions consistent with AD pathology, with the pipeline's limitations (no skull-stripping, coarse spatial regions) stated explicitly.
+    \item \textbf{A reproducible, config-driven codebase} that regenerates the curated labels, subject-level splits, all model runs, and every figure.
+\end{enumerate}
+
+\section{Limitations of the Study}
+Several limitations should be acknowledged. The cohort, though standard, is small (395 subjects; only 80 MCI), which caps three-class performance and makes transformer training difficult. The single-site ADNI focus keeps the labels and protocol clean; a first attempt at external validation on independent hospital scans (Section~\ref{sec:extval}) was constrained by a severe modality/domain shift and is reported below as a preliminary result rather than a demonstration of transfer. The 16\,GB GPU budget constrained input resolution ($96^3$–$128^3$) and batch size, and limited the number of experiments—so a few model$\times$task cells (e.g., some standalone and hybrid three-class runs) remain to be completed. The pretrained-ResNet result is confounded by an early-stopping artifact, and because the ADNI volumes are not skull-stripped or atlas-registered, the explainability maps report importance over coarse spatial regions rather than named anatomical ROIs. These are documented honestly rather than hidden.
+
+\section{Preliminary External Validation on Independent Hospital Data}\label{sec:extval}
+To probe generalization beyond ADNI, the trained models were applied to a small set of real clinical MRI scans obtained from a collaborating diagnostic center, \textbf{Comfort Diagnostic Center}. Weak diagnostic labels for these scans were derived from routine radiology reports under the guidance of a collaborating clinician, \textbf{Dr.\ Ziaur Rahman} (Physician \& Surgeon); the labels are termed \emph{weak} because they come from clinical reports rather than a formal research diagnostic protocol. This exercise is reported transparently as a \emph{preliminary} pilot test, not as a headline result. Table~\ref{tab:extval} summarises the outcome across models.
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Preliminary hospital external-testing results.} Each ADNI-trained model applied to the hospital pilot set ($n=8$: 4 CN, 4 MCI; no AD cases). ``Hosp AUC$^{*}$'' is CN-vs-MCI ranking quality on the pilot set.}
+\label{tab:extval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Trained for} & \textbf{ADNI 5-fold} & \textbf{Hosp 3-class} & \textbf{Hosp CN-vs-MCI} & \textbf{Hosp AUC$^{*}$} \\
+\hline
+Swin & 3-class & 57.7\% & 38\% (3/8) & 75\% (6/8) & 0.62 \\
+CNN (DenseNet) & 3-class & 57.2\% & 25\% (2/8) & 38\% (3/8) & 0.50 \\
+ViT & 3-class & 28.6\% & 25\% (2/8) & 50\% (4/8) & 0.12 \\
+CNN (DenseNet) & binary & 81.0\% & n/a & 75\% (6/8) & 0.94 \\
+ResNet-18 (MedicalNet) & binary & 69.8\% & n/a & 50\% (4/8) & 0.94 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+\noindent{\footnotesize $^{*}$The apparently high 0.94 binary AUC is \textbf{age-confounded} and must \emph{not} be read as evidence of transfer (see below).}
+
+The attempt surfaced a severe \textbf{domain shift}. Whereas the models were trained on 3\,T, 3D T1-weighted MPRAGE volumes at $\sim$1\,mm isotropic resolution, the hospital scans were 1.5\,T, 2D T1-FLAIR acquisitions of roughly 20 slices at 5--6\,mm slice thickness (about $12\times$ anisotropic) --- a fundamentally different modality and resolution regime. Only 8 studies were usable (4 CN, 4 MCI; no AD cases were available), and three-class accuracy fell to chance ($\le$3/8 for every model). The seemingly high binary CN-vs-MCI AUC of 0.94 is \emph{not} evidence of transfer: the CN and MCI subgroups are strongly \textbf{age-confounded} (mean age $\sim$35\,years for CN vs.\ $\sim$68\,years for MCI), so the model is largely tracking age-related atrophy rather than disease, and the sample is far too small for a reliable estimate. The one mild positive is that the binary model assigned a low AD probability ($<0.17$) to all four CN subjects --- it did not raise false AD alarms --- though with no AD cases present, sensitivity could not be assessed.
+
+The honest reading is that this preliminary test does \emph{not} demonstrate transfer; rather, it shows how sharply performance degrades when the acquisition protocol differs from the training distribution, while establishing a realistic data-sharing pathway with the hospital. A meaningful external validation requires 3\,T, 3D volumetric T1-weighted scans with confirmed, research-grade labels including AD cases, which is set out as future work below.
+
+\section{Recommendations and Future Work}
+Future work follows directly from these limitations. First, add a min-epoch guard before early stopping and re-evaluate the pretrained backbones, and complete the remaining model$\times$task runs so every cell of the comparison is filled. Second, run the skull-stripping and MNI-registration ablations and initialize the Swin encoder from self-supervised pretrained weights, both of which are expected to raise accuracy and sharpen the explainability maps to true anatomical ROIs. Third, extend the external validation begun here: collect 3\,T, 3D T1-weighted scans with research-grade labels (including AD cases) from the collaborating hospital, and additionally validate on public independent datasets (e.g., MIRIAD or OASIS), to measure genuine cross-site generalization free of the modality mismatch and age confound described above. Finally, the hybrid can be extended with a tuned cross-attention fusion and with multimodal inputs (PET, cognitive scores) to improve the difficult CN/MCI/AD boundary, and evaluated in a realistic clinical workflow. Together these steps would turn a rigorous benchmark into a stronger, externally validated diagnostic-support tool.
