@@ -58,7 +58,7 @@ The new statistics are computed by `analysis/derived_stats.py` from numbers alre
    - The ADNI Data Use Agreement normally requires manuscripts to be sent to the **ADNI Data and Publications Committee (DPC)** for review before submission.
    - Check your DUA and the ADNI website for the current procedure and turnaround time. With a 25 Oct deadline you have very little slack.
    - Paste the official ADNI funding acknowledgement where the red TODO is in *Acknowledgment*. The investigator footnote is already included.
-2. **Check the CFP page:** page limit (written for ≤ 6 pages), template, submission system (EDAS/CMT/EasyChair), and whether review is double-blind.
+2. **Check the CFP page:** page limit (previous editions: 4–6 pages incl. references, IEEE double-column, A4, PDF ≤ 3 MB; the paper is now A4 and 5 pages), template, submission system (EDAS/CMT/EasyChair), and whether review is double-blind.
    - If double-blind, replace the author block with "Anonymous Authors" and remove the affiliation.
 3. **Fill the 3 red `[TODO: …]` placeholders** (`grep -n authortodo main.tex`):
    - author e-mails and final author order (supervisors are usually listed last);
