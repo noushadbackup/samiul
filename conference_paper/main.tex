@@ -8,15 +8,18 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds}
 \graphicspath{{figures/}}
 
 % Visible placeholder for facts only the authors can supply. Resolve all before submission:
 %   grep -n authortodo main.tex
 \newcommand{\authortodo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\finding}[1]{\noindent\textbf{#1}}
 
 \begin{document}
 
-\title{Does Hybridization Help? A Leakage-Free, Subject-Level Benchmark of 3D CNN, Transformer, and Hybrid Models for Alzheimer's Disease Classification from Structural MRI}
+\title{Do Transformers Add Anything to a 3D CNN for Alzheimer's Disease Detection? A Leakage-Free, Statistically Controlled Benchmark on Structural MRI}
 
 \author{
 \IEEEauthorblockN{Pinky Akter, Samuel Emon Halder, Md. Sarjil Hasan, A.S. Zaforullah Momtaz, Faria Zarin Subah}
@@ -27,172 +30,200 @@
 \maketitle
 
 \begin{abstract}
-Many deep-learning studies of Alzheimer's disease (AD) report near-perfect accuracy from structural MRI, but they often split data at the level of 2D slices, so slices of the same patient appear in both training and test sets. We present a leakage-free benchmark of fully three-dimensional models on 1{,}132 T1-weighted MRI volumes from 395 subjects of the Alzheimer's Disease Neuroimaging Initiative (ADNI). All models share one preprocessing pipeline, one classifier head, and identical subject-level five-fold splits. We compare a 3D DenseNet-121, a MedicalNet-pretrained 3D ResNet-18, a 3D Vision Transformer (ViT), a Swin Transformer encoder, and two late-fusion hybrids (CNN--ViT and Swin--ViT) on cognitively normal (CN) vs.\ AD and CN vs.\ mild cognitive impairment (MCI) vs.\ AD classification. The CNN--ViT hybrid reaches the highest binary accuracy ($82.2\pm5.7\%$, macro-F1 $0.80$) but is statistically indistinguishable from the from-scratch DenseNet ($81.0\%$; paired $p\approx0.54$); the hybrid without a convolutional branch is far weaker ($70.2\%$). In the three-class task the best model (Swin, $57.7\%$) is only about five points above the majority-class baseline, and MCI is the main source of error. A from-scratch ViT fails to learn. A 3D attribution analysis shows that, without skull-stripping, explanation methods disagree and partly highlight non-brain tissue. The results indicate that under honest evaluation a well-trained 3D CNN is a strong baseline that transformer hybrids do not measurably improve at this data scale.
+Deep-learning systems for Alzheimer's disease (AD) detection from MRI routinely report 95--99\% accuracy, and CNN--transformer hybrids are increasingly presented as the next step. Most of these figures, however, come from slice-level splits that place images of the same patient in both training and test sets, and hybrids are rarely compared against matched single-model baselines. We ask whether a transformer branch improves a 3D CNN when the evaluation is honest. Six fully 3D models --- DenseNet-121, MedicalNet ResNet-18, ViT, Swin, and two late-fusion hybrids (CNN--ViT and Swin--ViT) --- were trained on 1{,}132 T1-weighted volumes from 395 ADNI subjects with one preprocessing pipeline, one classifier head, and identical subject-level five-fold splits, and were compared with fold-paired tests and subject-level bootstrap intervals. On CN vs.\ AD, the CNN--ViT hybrid reached a balanced accuracy of $0.806$ (95\% CI $0.757$--$0.852$), statistically indistinguishable from DenseNet alone ($0.800$; paired $p=0.54$). Replacing the CNN branch with Swin, by contrast, lowered macro-F1 in all five folds (balanced accuracy $0.670$). On CN vs.\ MCI vs.\ AD, the best balanced accuracy was $0.549$ against a chance level of $0.333$, with MCI as the bottleneck, and a from-scratch ViT never predicted the majority class. 3D attribution maps disagreed across methods and partly highlighted non-brain tissue. At the scale of a typical ADNI study, the convolutional branch carries the signal and the transformer adds no measurable value.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Alzheimer's disease, structural MRI, 3D convolutional neural network, vision transformer, data leakage, explainable AI
+Alzheimer's disease, structural MRI, 3D CNN, vision transformer, hybrid models, data leakage, benchmark, explainability
 \end{IEEEkeywords}
 
 \section{Introduction}
-Alzheimer's disease (AD) is the most common cause of dementia, and structural MRI captures its characteristic atrophy of the hippocampus and medial temporal lobe and the resulting ventricular enlargement~\cite{scheltens2016alzheimer,frisoni2010clinical}. Deep learning has been applied widely to MRI-based AD classification, and recent work increasingly combines convolutional neural networks (CNNs), which capture local texture, with vision transformers (ViTs), which model long-range context~\cite{bravo2024systematic}.
+Alzheimer's disease (AD) is the leading cause of dementia, and the atrophy it causes in the hippocampus and medial temporal lobe is visible on structural MRI~\cite{scheltens2016alzheimer,frisoni2010clinical}. This has made MRI-based AD classification one of the most popular applications of deep learning in medical imaging~\cite{bravo2024systematic}.
 
-Two problems limit what this literature tells us. First, many studies classify 2D slices and split the data at slice level, so slices of the same patient fall on both sides of the train/test boundary. Yagis \textit{et al.}~\cite{yagis2021effect} showed that such leakage raises accuracy from about 66--70\% to 95--97\% on the same data, and Wen \textit{et al.}~\cite{wen2020convolutional} found signs of leakage in more than half of the studies they reviewed. Second, hybrid CNN--transformer models are rarely compared against equally tuned single-model baselines under the same splits, so it is unclear whether fusion itself helps.
-
-This paper addresses both problems with a controlled benchmark. Its contributions are:
-\begin{itemize}
-    \item A subject-level, five-fold evaluation of six fully 3D models on one curated ADNI cohort, with a shared pipeline, classifier head, and splits, and with majority-class baselines and paired statistical tests reported alongside every comparison.
-    \item Evidence that a CNN--ViT hybrid does not measurably outperform a strong from-scratch 3D CNN, whereas removing the CNN branch costs about 12 accuracy points.
-    \item Two documented negative results: instability of a medically pretrained ResNet, and failure of a from-scratch 3D ViT in the three-class task.
-    \item A 3D explainability analysis that reports where attribution methods disagree, rather than only showing favourable maps.
-\end{itemize}
-
-\section{Related Work}
-\textbf{Slice-based studies.} ViT and CNN models trained on 2D slices report 97--99.8\% accuracy for AD staging~\cite{alshayeji2024alzheimer,mahim2024unlocking,el2024novel,alsaeed2022brain}, and a CNN--Swin hybrid reaches 95.3\% on OASIS slices~\cite{velu2025design}. These pipelines either split data at slice level or use curated 2D Kaggle sets, so their figures are not comparable with subject-level results~\cite{yagis2021effect}.
-
-\textbf{Subject-level 3D studies.} Under subject-level evaluation, reported performance is markedly lower. Wen \textit{et al.}~\cite{wen2020convolutional} obtained 85--88\% for AD vs.\ CN with 3D CNNs in a reproducible framework, and B{\"a}ckstr{\"o}m \textit{et al.}~\cite{backstrom2018efficient} showed that subject-level splitting is essential for 3D CNNs. Saoud and AlMarzouqi~\cite{saoud2024explainable} used one baseline scan per subject and an ensemble of 138 region-specific 3D ViTs, reporting 90\% for AD vs.\ CN but only 60\% for the three-class task. Our work follows this subject-level line and focuses on whether hybridization adds value over strong single models.
-
-\section{Materials and Methods}
-\subsection{Data}
-We used ADNI~\cite{jack2008adni,petersen2010adni} 3T T1-weighted MPRAGE volumes (ADNI GO/2/3) in the pre-processed N3m NIfTI form. We removed 18 scans from 9 subjects that were hippocampal segmentations or followed an off-pipeline protocol; all 9 subjects kept their standard scans. Table~\ref{tab:data} summarizes the cohort. Subjects contribute 2.9 scans on average, so a subject-level split is essential.
-
-\begin{table}[t]
-\centering
-\caption{Curated ADNI cohort}
-\label{tab:data}
-\begin{tabular}{lccc}
-\toprule
-Group & Subjects & Scans & Task \\
-\midrule
-CN  & 206 & 627 & binary, 3-class \\
-MCI & 80  & 182 & 3-class \\
-AD  & 109 & 323 & binary, 3-class \\
-\midrule
-Total & 395 & 1{,}132 & \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Evaluation Protocol}
-We built stratified five-fold splits at the \emph{subject} level (seed 42), so that no subject's scans appear in both training and test data; this is asserted in code. The same splits are used for every model. \authortodo{state where the validation subjects used for early stopping come from in each fold, e.g.\ an inner split of the four training folds}. Scan-level outputs are averaged per subject to give one subject-level prediction, and all metrics are computed at subject level. Because the classes are imbalanced, we use macro-F1 as the primary metric and report accuracy and weighted-F1 as secondary metrics. Always predicting CN gives the majority-class baseline: $65.4\%$ accuracy in the binary task and $52.2\%$ in the three-class task. We report mean $\pm$ population standard deviation over folds, and compare models with a paired $t$-test on fold-wise macro-F1.
-
-\subsection{Preprocessing}
-A deterministic MONAI~\cite{cardoso2022monai} pipeline reorients each volume to RAS, resamples it to 1.5\,mm isotropic spacing, crops the foreground, applies z-score normalization over non-zero voxels, and resizes it to $96^3$ (all binary runs and the three-class ViT) or $128^3$ (three-class CNN and Swin). Volumes are not skull-stripped or registered. Training-only augmentation includes random flips, affine transforms ($\pm10^\circ$), Gaussian noise and smoothing, bias field, gamma, and intensity scaling.
-
-\subsection{Models}
-All backbones expose a feature vector that feeds a shared dropout (0.2) and linear classifier head.
-(i)~\textbf{DenseNet-121}~\cite{huang2017densely}: 3D, trained from scratch, 1024-D features.
-(ii)~\textbf{ResNet-18} initialized with MedicalNet weights~\cite{chen2019med3d}, 512-D.
-(iii)~\textbf{ViT}~\cite{dosovitskiy2021image}: hidden size 384, 6 layers, 6 heads, $16^3$ patches (216 tokens), trained from scratch.
-(iv)~\textbf{Swin}: the SwinUNETR encoder~\cite{hatamizadeh2021swinunetr,liu2021swin} (feature size 48, four stages) with global average pooling.
-(v)~\textbf{CNN--ViT hybrid} (Fig.~\ref{fig:arch}): DenseNet and ViT branches process the same volume, and their features are concatenated (1408-D) before the head.
-(vi)~\textbf{Swin--ViT hybrid}: the same design with Swin in place of DenseNet, which acts as a control for the contribution of the CNN branch.
+The reported performance in this field depends heavily on how the data are split (Fig.~\ref{fig:gap}). Studies that classify 2D slices or curated 2D images report a median accuracy of 99.0\%~\cite{alshayeji2024alzheimer,mahim2024unlocking,el2024novel,alsaeed2022brain,mora2023classification,kurniasari2024transforming,velu2025design,pandey2025leveraging}. Studies that keep every subject entirely in either the training or the test set report 60--90\%~\cite{wen2020convolutional,saoud2024explainable}. The difference is largely an artefact: when Yagis \textit{et al.}~\cite{yagis2021effect} kept the data and model fixed and changed only the split from slice level to subject level, accuracy fell by about 28 points. Wen \textit{et al.}~\cite{wen2020convolutional} found possible leakage in more than half of the CNN studies they reviewed, a recent scoping review identifies leakage as the most recurrent source of performance inflation in AD deep learning~\cite{young2025leakage}, and even 3D CNNs can leak through longitudinal scans of the same subject~\cite{rumala2023split}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{arch_hybrid.png}
-\caption{CNN--ViT hybrid. A 3D DenseNet-121 branch (local features, 1024-D) and a 3D ViT branch (global features, 384-D) process the same volume; their features are concatenated and classified by a shared dropout and linear head.}
-\label{fig:arch}
+\includegraphics[width=\columnwidth]{fig_leakage_gap.pdf}
+\caption{\textbf{The leakage gap.} Accuracies reported in the literature, grouped by the level at which data were split. Squares show Yagis \textit{et al.}~\cite{yagis2021effect}, who changed only the split on the same data and model. Our subject-level results (orange) fall in the honest regime. Reported ranges are plotted at their midpoint. Dotted line: majority-class baseline of our binary task.}
+\label{fig:gap}
 \end{figure}
+
+A second, less discussed problem concerns architecture claims. CNN--transformer hybrids are motivated by the intuition that convolutions capture local atrophy while self-attention captures long-range structure~\cite{velu2025design,mahim2024unlocking}. Hybrids, however, are usually evaluated against weaker or differently tuned baselines, on different splits, and without statistical tests, so the contribution of the fusion itself is unknown. Under leakage-free evaluation it is not clear whether any of the gain survives.
+
+We therefore design a controlled benchmark in which only the backbone changes, and use it to answer three questions:
+\begin{itemize}
+    \item \textbf{RQ1:} Does adding a global transformer branch to a 3D CNN improve AD classification?
+    \item \textbf{RQ2:} Which component carries the signal --- the convolutional branch, the transformer, or pretraining?
+    \item \textbf{RQ3:} Do 3D attribution maps of such models point to disease-related anatomy?
+\end{itemize}
+Our contributions are:
+\begin{enumerate}
+    \item A leakage-free benchmark of six 3D models on ADNI with identical subject-level splits, preprocessing, classifier head, and per-task training recipe, reported with majority-class baselines, fold-paired tests, and subject-level bootstrap confidence intervals.
+    \item A branch ablation showing that adding a ViT to a 3D CNN gives no measurable gain ($p=0.54$), whereas removing the CNN branch costs 0.14 macro-F1 in every fold.
+    \item Two documented failure modes: instability of a medically pretrained ResNet, and collapse of a from-scratch 3D ViT that never predicts the majority class.
+    \item A multi-method 3D attribution analysis that exposes method disagreement and non-brain attribution, together with a practical checklist for evaluating future hybrid models.
+\end{enumerate}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{res_confusion_binary.png}
-\caption{Binary confusion matrices (folds summed, row-normalized, subject level).}
-\label{fig:cm}
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style={draw=black!60, rounded corners=2pt, align=center, inner sep=3pt, minimum height=8.5mm, fill=white},
+  hl/.style={box, draw=blue!70!black, fill=blue!6},
+  arr/.style={-{Latex[length=1.6mm]}, black!70, line width=0.5pt}]
+\node[box] (data) {ADNI T1 MRI\\395 subjects\\1{,}132 scans};
+\node[box, right=4.5mm of data] (split) {Subject-level\\stratified 5-fold\\(no subject in\\train \& test)};
+\node[box, right=4.5mm of split] (prep) {Shared MONAI\\preprocessing\\RAS, 1.5\,mm,\\z-score, $96^3$/$128^3$};
+\node[hl, right=5mm of prep, align=left, font=\scriptsize] (fam) {%
+\textbf{\footnotesize Controlled model family}\\[2pt]
+single: DenseNet-121, ResNet-18 (MedicalNet),\\
+\hspace*{2.4em}ViT (scratch), Swin encoder\\[1pt]
+hybrid: $z=[f_{\text{CNN}}\Vert f_{\text{ViT}}]$ (1408-D)\\
+\hspace*{2.4em}control: $z=[f_{\text{Swin}}\Vert f_{\text{ViT}}]$\\[1pt]
+head: $\mathrm{softmax}(W\,\mathrm{drop}(z)+b)$, shared};
+\node[box, right=5mm of fam] (agg) {Subject-level\\aggregation\\(mean of $p_\theta$)};
+\node[box, right=4.5mm of agg] (eval) {BAcc, macro-F1\\sens./spec.\\paired $t$-test\\bootstrap CI\\3D XAI};
+\draw[arr] (data) -- (split); \draw[arr] (split) -- (prep); \draw[arr] (prep) -- (fam);
+\draw[arr] (fam) -- (agg); \draw[arr] (agg) -- (eval);
+\end{tikzpicture}
+\caption{\textbf{Benchmark design.} Every model sees the same subjects, splits, preprocessing, and classifier head, and models are trained with one recipe per task; only the backbone changes. The Swin--ViT hybrid is an ablation control that removes the convolutional branch.}
+\label{fig:design}
 \end{figure*}
 
-\subsection{Training}
-All models use AdamW~\cite{loshchilov2019decoupled} (learning rate $10^{-4}$) with cosine decay and linear warmup, mixed precision, batch size 2 with 4-step gradient accumulation, and gradient clipping at 1.0. Binary runs use class-weighted cross-entropy with label smoothing 0.1~\cite{muller2019does}, weight decay 0.03, 8 warmup epochs, at most 100 epochs, and early-stopping patience 18. Three-class runs use focal loss~\cite{lin2017focal} ($\gamma=2$), weight decay 0.01, 5 warmup epochs, at most 80 epochs, and patience 15. \authortodo{state exactly which imbalance corrections were active per run (class weights, weighted sampler, focal loss)}. Early stopping and checkpoint selection use validation subject-level macro-F1. Training used PyTorch~\cite{paszke2019pytorch} and MONAI on one NVIDIA RTX 5060 Ti (16\,GB).
+\section{Related Work}
+\textbf{Slice-level studies.} ViT, ViT--GRU, multi-scale CNN, and CNN--Swin models trained on 2D slices report 95--99.8\% accuracy~\cite{alshayeji2024alzheimer,mahim2024unlocking,el2024novel,velu2025design}. These studies use slice-level splits or curated 2D image sets, so their figures cannot be compared with subject-level results~\cite{yagis2021effect,young2025leakage}.
 
-\subsection{Explainability}
-For trained models we computed Grad-CAM~\cite{selvaraju2017gradcam}, Grad-CAM++~\cite{chattopadhay2018gradcampp}, Score-CAM, Integrated Gradients~\cite{sundararajan2017axiomatic}, SmoothGrad~\cite{smilkov2017smoothgrad}, occlusion, LIME~\cite{ribeiro2016why}, and, for transformers, attention rollout~\cite{abnar2020quantifying}, all in 3D.
+\textbf{Subject-level 3D studies.} Wen \textit{et al.}~\cite{wen2020convolutional} reported 85--88\% for CN vs.\ AD with 3D CNNs in a reproducible framework, and B{\"a}ckstr{\"o}m \textit{et al.}~\cite{backstrom2018efficient} showed that a subject-level split is essential for 3D CNNs. Saoud and AlMarzouqi~\cite{saoud2024explainable} used one baseline scan per subject and an ensemble of 138 regional 3D ViTs, reporting 90\% for CN vs.\ AD and 60\% for the three-class task. A concurrent study reports 72.3\% with a multi-modal 3D CNN on OASIS-1 under subject-level cross-validation~\cite{sifat2026leakage}. None of these works isolates the contribution of a transformer branch inside a hybrid; that is the gap we address.
+
+\section{Benchmark Design}
+\subsection{Leakage-Free Protocol}
+Let $\mathcal{D}=\{(x_i,y_i,s_i)\}_{i=1}^{N}$ be the scans, where $x_i$ is a 3D volume, $y_i$ its label, and $s_i$ its subject. We partition the set of \emph{subjects} into five stratified folds $S_1,\dots,S_5$ (seed 42) and test on fold $k$ after training on the remaining folds, so that
+\begin{equation}
+\{s_i : i\in\text{train}_k\}\cap\{s_i : i\in\text{test}_k\}=\varnothing .
+\end{equation}
+\authortodo{state where the early-stopping validation subjects come from in each fold}. Because subjects contribute 2.9 scans on average, predictions are aggregated per subject:
+\begin{equation}
+\hat{y}_s=\arg\max_c \frac{1}{|I_s|}\sum_{i\in I_s} p_\theta(c\mid x_i),\qquad I_s=\{i: s_i=s\}.
+\end{equation}
+All metrics are computed at subject level. We report balanced accuracy (BAcc, the mean per-class recall), macro-F1, accuracy, and, for the binary task, sensitivity and specificity with AD as the positive class. The reference points are the majority-class baseline (always CN: accuracy $65.4\%$ binary and $52.2\%$ three-class) and chance BAcc ($0.5$ and $0.333$). Accuracy and macro-F1 are reported as mean $\pm$ SD over folds. BAcc is reported with a 95\% subject-level bootstrap confidence interval (10{,}000 resamples of the pooled out-of-fold predictions). Models are compared with a paired $t$-test on fold-wise macro-F1, and we also report how many folds each model wins.
+
+\subsection{Cohort and Preprocessing}
+We used ADNI~\cite{jack2008adni,petersen2010adni} 3T T1-weighted MPRAGE volumes (ADNI GO/2/3, pre-processed N3m NIfTI). After removing 18 off-protocol scans, the cohort contains 206 CN (627 scans), 80 MCI (182), and 109 AD (323) subjects. A deterministic MONAI~\cite{cardoso2022monai} pipeline reorients each volume to RAS, resamples it to 1.5\,mm isotropic spacing, crops the foreground, applies z-score normalization over non-zero voxels, and resizes it to $96^3$ (all binary runs and the three-class ViT) or $128^3$ (three-class CNN and Swin). No skull-stripping or registration is applied. Training-time augmentation uses flips, $\pm10^\circ$ affine transforms, noise, smoothing, bias field, and gamma and intensity perturbations.
+
+
+\begin{table*}[t]
+\centering
+\caption{CN vs.\ AD (315 subjects). Accuracy and macro-F1: mean $\pm$ SD over five subject-level folds. BAcc, sensitivity, and specificity: pooled out-of-fold subject predictions, with a 95\% bootstrap CI. $\Delta$: fold-paired difference in macro-F1 against the reference model, with the folds won.}
+\label{tab:binary}
+\begin{tabular}{lcccccc}
+\toprule
+Model & Accuracy & Macro-F1 & BAcc [95\% CI] & Sens. & Spec. & $\Delta$ macro-F1 (paired $p$; folds won) \\
+\midrule
+CNN--ViT hybrid & \textbf{0.822}$\pm$0.057 & \textbf{0.802}$\pm$0.062 & \textbf{0.806} [0.757, 0.852] & 0.752 & \textbf{0.859} & reference \\
+DenseNet-121 & 0.810$\pm$0.041 & 0.788$\pm$0.062 & 0.800 [0.752, 0.846] & \textbf{0.771} & 0.830 & $-0.014$ ($p=0.54$; 2/5) \\
+Swin--ViT hybrid (no CNN) & 0.702$\pm$0.070 & 0.662$\pm$0.101 & 0.670 [0.615, 0.724] & 0.569 & 0.772 & $-0.140$ ($p=0.11$; 0/5) \\
+ResNet-18 (MedicalNet) & 0.698$\pm$0.139 & 0.654$\pm$0.168 & 0.689 [0.635, 0.742] & 0.670 & 0.709 & $-0.148$ vs.\ CNN--ViT \\
+\midrule
+\textit{Majority baseline (always CN)} & \textit{0.654} & \textit{0.395} & \textit{0.500} & \textit{0.000} & \textit{1.000} & \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Controlled Model Family}
+All backbones produce a feature vector $f$ that feeds a shared head (dropout 0.2 and a linear layer). We test four single backbones and two hybrids:
+\begin{itemize}
+    \item \textbf{DenseNet-121}~\cite{huang2017densely}: 3D, trained from scratch, 1024-D features.
+    \item \textbf{ResNet-18} initialized with MedicalNet weights~\cite{chen2019med3d}: 512-D.
+    \item \textbf{ViT}~\cite{dosovitskiy2021image}: 384-D, 6 layers, 6 heads, $16^3$ patches, trained from scratch.
+    \item \textbf{Swin}: the SwinUNETR encoder~\cite{hatamizadeh2021swinunetr,liu2021swin} (feature size 48, four stages).
+    \item \textbf{CNN--ViT hybrid}: runs DenseNet and ViT on the same volume and concatenates their features, $z=[f_{\text{CNN}}\Vert f_{\text{ViT}}]$.
+    \item \textbf{Swin--ViT hybrid}: the same design with Swin in place of DenseNet, so that comparing it with CNN--ViT isolates the contribution of the convolutional branch.
+\end{itemize}
+Fig.~\ref{fig:design} summarizes the design.
+
+\subsection{Training}
+We use AdamW~\cite{loshchilov2019decoupled} (learning rate $10^{-4}$) with cosine decay, linear warmup, mixed precision, an effective batch size of 8 (2 $\times$ 4 accumulation), and gradient clipping at 1.0 on one 16\,GB RTX 5060 Ti.
+\begin{itemize}
+    \item \textbf{Binary runs:} class-weighted cross-entropy with label smoothing 0.1~\cite{muller2019does}, weight decay 0.03, at most 100 epochs, early-stopping patience 18.
+    \item \textbf{Three-class runs:} focal loss~\cite{lin2017focal} ($\gamma=2$), weight decay 0.01, at most 80 epochs, patience 15.
+\end{itemize}
+\authortodo{list the imbalance corrections active in each run}. Checkpoints are selected on validation subject-level macro-F1.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_folds_confusion.pdf}
+\caption{\textbf{(a)} Per-fold binary macro-F1 on identical subject-level folds: CNN--ViT and DenseNet alternate, whereas Swin--ViT (no CNN branch) is lower in every fold. \textbf{(b--d)} Pooled three-class confusion matrices (subject counts; shading is row-normalized). MCI is mostly absorbed into CN and AD, and the from-scratch ViT never predicts CN.}
+\label{fig:folds}
+\end{figure*}
+
+\subsection{Explainability Protocol}
+We computed Grad-CAM~\cite{selvaraju2017gradcam}, Grad-CAM++~\cite{chattopadhay2018gradcampp}, Score-CAM, Integrated Gradients~\cite{sundararajan2017axiomatic}, SmoothGrad~\cite{smilkov2017smoothgrad}, occlusion, LIME~\cite{ribeiro2016why}, and attention rollout~\cite{abnar2020quantifying} in 3D, and inspected whether the methods agree with one another and with known AD anatomy.
 
 \section{Results}
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{xai_panel_binary_cnn.png}
-\caption{3D attribution methods for the binary DenseNet on one AD subject (axial slice). The methods highlight different regions, including non-brain tissue.}
+\caption{\textbf{Attribution methods disagree.} Eight 3D attribution methods applied to the binary DenseNet on one AD subject (axial slice): Grad-CAM points frontally, Grad-CAM++/Score-CAM centrally, occlusion to the occipital region and skull, and LIME partly to the scalp.}
 \label{fig:xai}
 \end{figure*}
 
-\subsection{Binary CN vs.\ AD}
-Table~\ref{tab:binary} reports the binary results. The CNN--ViT hybrid has the highest mean macro-F1 ($0.802$), followed closely by the from-scratch DenseNet ($0.788$). Both clearly exceed the majority-class baseline. The Swin--ViT hybrid and the pretrained ResNet are about 12 points lower in accuracy, only 4--5 points above the baseline, and much less stable across folds.
+
+\finding{Finding 1 --- Adding a ViT branch to a 3D CNN gives no measurable gain (RQ1).}
+The CNN--ViT hybrid has the highest mean scores (Table~\ref{tab:binary}), but its advantage over DenseNet alone is $+0.014$ macro-F1. A paired $t$-test gives $t=0.67$ with 4 degrees of freedom ($p=0.54$); the hybrid wins three of five folds, and the BAcc confidence intervals of the two models almost coincide. Fig.~\ref{fig:folds}a shows that the two models cross each other from fold to fold. Over all 315 subjects the hybrid classifies 259 correctly and DenseNet 255.
+
+\finding{Finding 2 --- The convolutional branch carries the signal; pretraining does not (RQ2).}
+Removing the CNN branch (Swin--ViT) lowers macro-F1 by 0.14 and loses in all five folds. The paired $t$-test is not significant ($p=0.11$) because of a single extreme fold, but the BAcc confidence intervals do not overlap (0.615--0.724 vs.\ 0.757--0.852), and Swin--ViT misses 43\% of AD subjects. The MedicalNet-pretrained ResNet is only about four points above the majority baseline in accuracy and is bimodal across folds: three folds reach 0.78--0.82 macro-F1 and two fall to 0.449. This is consistent with a late accuracy take-off interacting with early stopping, a hypothesis we have not yet tested. At this data scale, inductive bias from convolution matters more than either global attention or medical pretraining.
+
 
 \begin{table}[t]
 \centering
-\caption{Binary CN vs.\ AD, subject-level 5-fold CV (mean $\pm$ SD)}
-\label{tab:binary}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lccc}
-\toprule
-Model & Accuracy & Macro-F1 & W-F1 \\
-\midrule
-CNN--ViT hybrid & \textbf{0.822}$\pm$0.057 & \textbf{0.802}$\pm$0.062 & 0.820 \\
-DenseNet-121 (scratch) & 0.810$\pm$0.041 & 0.788$\pm$0.062 & 0.807 \\
-Swin--ViT hybrid & 0.702$\pm$0.070 & 0.662$\pm$0.101 & 0.696 \\
-ResNet-18 (MedicalNet) & 0.698$\pm$0.139 & 0.654$\pm$0.168 & 0.678 \\
-\midrule
-\textit{Majority baseline} & \textit{0.654} & \textit{0.395} & \textit{0.517} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\textbf{Is the hybrid better?} The fold-wise macro-F1 differences between the CNN--ViT hybrid and DenseNet are $-0.052$, $+0.047$, $+0.065$, $-0.013$, and $+0.023$ (mean $+0.014$). A paired $t$-test gives $t=0.67$ with 4 degrees of freedom ($p\approx0.54$). The hybrid wins three of five folds and classifies 259 of 315 subjects correctly against DenseNet's 255. We therefore find no evidence that adding the ViT branch helps. Removing the CNN branch, however, is costly: Swin--ViT loses about 14 points of macro-F1, which indicates that the convolutional branch carries most of the signal at this data scale.
-
-Fig.~\ref{fig:cm} shows the confusion matrices. CNN--ViT and DenseNet recover both classes with balanced errors (CN recall $0.83$--$0.86$, AD recall $0.75$--$0.77$), whereas Swin--ViT misses $43\%$ of AD subjects.
-
-\subsection{Three-Class CN vs.\ MCI vs.\ AD}
-Table~\ref{tab:3class} reports the three-class results. Swin and DenseNet are tied ($t=0.70$, $p\approx0.5$) at about 57\% accuracy. This is only five points above the majority baseline, although their macro-F1 is more than twice the baseline's. The pooled per-class F1 is about $0.65$ for CN, $0.55$--$0.61$ for AD, and only $0.37$--$0.41$ for MCI; most MCI subjects are assigned to CN or AD. For DenseNet, the one-vs-rest AUCs are $0.69$ (CN), $0.66$ (MCI), and $0.77$ (AD). The CNN--ViT hybrid was not evaluated on this task.
-
-\begin{table}[t]
-\centering
-\caption{Three-class CN/MCI/AD, subject-level 5-fold CV}
+\caption{CN vs.\ MCI vs.\ AD (395 subjects). Chance BAcc is 0.333.}
 \label{tab:3class}
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{lccc}
 \toprule
-Model & Accuracy & Macro-F1 & W-F1 \\
+Model & Macro-F1 & BAcc [95\% CI] & MCI recall \\
 \midrule
-Swin & \textbf{0.577}$\pm$0.098 & \textbf{0.537}$\pm$0.078 & 0.573 \\
-DenseNet-121 & 0.572$\pm$0.092 & 0.524$\pm$0.071 & 0.560 \\
-ViT (scratch) & 0.286$\pm$0.015 & 0.256$\pm$0.012 & 0.184 \\
+Swin & \textbf{0.537}$\pm$0.078 & \textbf{0.549} [0.499, 0.601] & 0.375 \\
+DenseNet-121 & 0.524$\pm$0.071 & 0.537 [0.485, 0.588] & \textbf{0.400} \\
+ViT (scratch) & 0.256$\pm$0.012 & 0.409 [0.363, 0.454] & 0.713 \\
 \midrule
-\textit{Majority baseline} & \textit{0.522} & \textit{0.229} & \textit{0.358} \\
+\textit{Majority baseline} & \textit{0.229} & \textit{0.333} & \textit{0.000} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Fold Variance and Negative Results}
-Fig.~\ref{fig:box} shows the fold-wise spread. The pretrained ResNet is bimodal: three folds reach $0.78$--$0.82$ macro-F1 while two fall to $0.449$. One possible explanation is that a late accuracy take-off interacts with the shared early-stopping patience, but we have not tested this. The from-scratch ViT falls \emph{below} the majority baseline in the three-class task: it never predicts CN and splits subjects between MCI and AD. This is consistent with the data demands of a ViT trained from scratch~\cite{dosovitskiy2021image}, possibly compounded by imbalance corrections that push a model that has learned nothing useful toward minority classes.
+\finding{Finding 3 --- Three-class classification is well above chance, but MCI is the bottleneck.}
+Swin and DenseNet are tied (paired $p=0.52$) at a BAcc of about 0.54--0.55, well above chance (Table~\ref{tab:3class}). Their per-class F1 is about 0.65 for CN and 0.55--0.61 for AD, but only 0.37--0.41 for MCI. Fig.~\ref{fig:folds}b--c shows that MCI subjects are mostly absorbed into CN and AD, as expected for a clinically intermediate stage. The from-scratch ViT reaches 28.6\% accuracy, below the 52.2\% majority baseline, because it \emph{never} predicts CN (Fig.~\ref{fig:folds}d). Its high MCI recall is therefore an artefact of predicting MCI or AD for every subject, not evidence of skill. This pattern is consistent with a data-hungry model~\cite{dosovitskiy2021image} that has learned nothing useful, pushed toward the minority classes by imbalance corrections.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.49\columnwidth]{res_box_binary.png}\hfill
-\includegraphics[width=0.49\columnwidth]{res_box_3class.png}
-\caption{Per-fold macro-F1: binary (left) and three-class (right).}
-\label{fig:box}
-\end{figure}
 
-\subsection{Explainability}
-Fig.~\ref{fig:xai} compares the attribution methods for the binary DenseNet on one AD subject. The methods do not agree: Grad-CAM highlights frontal regions, Grad-CAM++ and Score-CAM a central peri-ventricular area, occlusion the occipital region and posterior skull, and LIME partly the scalp. Integrated Gradients is sparse on this slice. For the Swin and Swin--ViT models, group-averaged Integrated Gradients over 16 AD subjects is close to uniform across spatial thirds of the volume, and several maps fall on extra-cerebral tissue. Because the volumes are not skull-stripped, these maps cannot show that the models rely on AD-specific anatomy.
+\finding{Finding 4 --- Without skull-stripping, attribution maps are not anatomically conclusive (RQ3).}
+On the same subject, the attribution methods highlight different regions (Fig.~\ref{fig:xai}). For the Swin and Swin--ViT models, group-averaged Integrated Gradients over 16 AD subjects is nearly uniform across thirds of the volume (0.036--0.055), with mass on the cerebellum, orbits, and scalp rather than a medial-temporal focus. Similar identity and shortcut cues have been reported for 3D MRI models~\cite{rumala2023split}. A single favourable heatmap would therefore be misleading, and attribution claims require skull-stripped inputs, atlas ROIs, and sanity checks.
 
 \section{Discussion}
-Under subject-level evaluation our binary result ($82\%$) lies in the same regime as other subject-level 3D studies, slightly below the 85--88\% of Wen \textit{et al.}~\cite{wen2020convolutional} and the 90\% of the 138-model ensemble of~\cite{saoud2024explainable}. Our three-class result ($58\%$) is close to the 60\% reported by~\cite{saoud2024explainable}. The remaining gap is plausibly explained by our minimal preprocessing (no skull-stripping or atlas registration) and reduced $96^3$ input resolution. The 97--99\% reported by slice-level studies are not comparable.
+Our results fall in the same honest regime as other subject-level studies (Fig.~\ref{fig:gap}): 82\% binary accuracy, against 85--88\%~\cite{wen2020convolutional} and 90\%~\cite{saoud2024explainable}, and 58\% three-class accuracy against 60\%~\cite{saoud2024explainable}. We obtain these with a single model and without registration or skull-stripping, which plausibly explains the remaining gap. The central lesson concerns architecture claims. At around 300--400 subjects, the benefit usually attributed to hybrids came from the convolutional branch, and it disappears when a hybrid is compared with an equally tuned CNN on the same splits.
 
-The main finding is negative but useful. At a cohort of a few hundred subjects, a well-tuned 3D CNN is a strong baseline, and late fusion with a ViT gives no measurable gain, while transformer-only configurations are clearly weaker. Claims of hybrid superiority should therefore be supported by matched single-model baselines and paired tests on identical subject-level splits.
+\textbf{Checklist for evaluating hybrid models.} Based on these findings, we recommend:
+\begin{enumerate}
+    \item Split at the subject level and aggregate scans per subject.
+    \item Report the majority-class and chance baselines next to every score.
+    \item Compare a hybrid against each of its branches trained alone, on identical folds.
+    \item Test differences with fold-paired tests and confidence intervals, and report the number of folds won.
+    \item Report per-fold results, not only mean $\pm$ SD.
+    \item Skull-strip the inputs and use more than one attribution method before making anatomical claims.
+\end{enumerate}
 
 \textbf{Limitations.}
 \begin{itemize}
     \item \emph{Incomplete model grid.} Standalone ViT and Swin were not run on the binary task, and CNN--ViT was not run on the three-class task.
-    \item \emph{Statistical power.} Results come from a single seed and five folds, so differences of one or two points are within noise.
-    \item \emph{Possible age confound.} AD subjects are older on average than CN subjects, and we did not run an age-only baseline.
-    \item \emph{Preprocessing and explainability.} Volumes were not skull-stripped, so the explainability analysis is qualitative.
+    \item \emph{Statistical power.} Five folds and a single seed limit the power of the tests, so a small benefit of hybridization cannot be ruled out.
+    \item \emph{Possible age confound.} AD subjects are older on average than CN subjects, and no age-only baseline was run.
     \item \emph{External validation.} The study uses only the ADNI cohort.
 \end{itemize}
 
 \section{Conclusion}
-We benchmarked six 3D models for AD classification from structural MRI under a strictly subject-level protocol. The CNN--ViT hybrid achieved the highest binary accuracy ($82.2\%$), but it was statistically tied with a from-scratch 3D DenseNet. Three-class performance was limited by MCI, and transformer-only and medically pretrained models were weaker or unstable. Future work will complete the model grid with repeated cross-validation, add skull-stripping and atlas-based ROI attribution, and validate the models on independent cohorts.
+Under leakage-free, statistically controlled evaluation, a transformer branch did not improve a strong 3D CNN for AD classification. The convolutional branch carried the signal, the three-class task was limited by MCI, and attribution maps on non-skull-stripped inputs were not anatomically conclusive. Hybrid-model claims should be backed by matched single-branch baselines and paired tests. Future work will complete the model grid with repeated cross-validation, add skull-stripping, atlas-ROI attribution, and an age-only baseline, and validate the models on independent cohorts.
 
 \section*{Acknowledgment}
 Data collection and sharing for this project was funded by the Alzheimer's Disease Neuroimaging Initiative (ADNI). \authortodo{paste the full, current ADNI funding acknowledgement text required by the ADNI Data Use Agreement}
