@@ -13,7 +13,7 @@
 Accepted papers are submitted to IEEE Xplore.
 
 **Files:**
-- `main.tex`: IEEE conference template (IEEEtran). Currently **5 pages** including references.
+- `main.tex`: IEEE conference template (IEEEtran). Currently **6 pages** including references (A4).
 - `analysis/`: scripts that derive the statistics and draw Figs. 1 and 3.
 - `figures/`: the figures used (`fig_leakage_gap.pdf`, `fig_folds_confusion.pdf`, `xai_panel_binary_cnn.png`; Fig. 2 is drawn in TikZ inside `main.tex`). The other PNGs are from the first draft and unused.
 - `references.bib`: the thesis bibliography. Only cited entries are printed.
@@ -51,6 +51,23 @@ The new statistics are computed by `analysis/derived_stats.py` from numbers alre
 **Verify before submission:**
 - In `derived_stats.py`, the Swin–ViT, ResNet-18 and 3-class ViT confusion counts are marked APPROX. They were reconstructed from two-decimal row-normalised matrices and may be off by ±1 subject. Replace them with exact counts from your saved predictions and re-run both scripts. Table I's Swin–ViT and ResNet BAcc/Sens/Spec may then change in the third decimal.
 - Fig. 1 literature values come from the thesis's literature review. Spot-check each against the original paper.
+
+## Version 3: filled from the code repository
+
+Every remaining technical TODO was resolved from `SamuelCormaken/Deep-Learning-for-Alzheimers-MRI`:
+- validation split;
+- double imbalance correction;
+- label source and follow-up span;
+- softmax-probability aggregation;
+- per-model schedules and input sizes (new **Table II**, with parameters and GFLOPs measured with the project's own `build_model`);
+- the real code URL (new *Code Availability* section).
+
+Two scripts were added and run on the real `labels.csv` and split files:
+- `analysis/cohort_and_age_baseline.py`: cohort demographics plus an **age+sex-only baseline on the exact folds**. It shows the groups are age- and sex-matched and that demographics alone are at chance. The former "age confound" limitation is therefore removed, and its absence is now reported as evidence.
+- `analysis/model_complexity.py`: parameters and GFLOPs. The CNN–ViT hybrid has 2.1× the parameters of DenseNet for no significant gain.
+
+The paper is now **6 pages** (A4), and only two red TODOs remain: author e-mails/order, and the ADNI funding text.
+If review is double-blind, replace the *Code Availability* URL with "available upon acceptance".
 
 ## Do these BEFORE submitting (in this order)
 

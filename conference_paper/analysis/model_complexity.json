@@ -1,0 +1,37 @@
+{
+  "binary_cnn": {
+    "params_M": 11.244674,
+    "gflops": 85.802881024,
+    "input": "128x128x128"
+  },
+  "binary_resnet": {
+    "params_M": 32.987202,
+    "gflops": 501.571651584,
+    "input": "128x128x128"
+  },
+  "binary_hybrid_cnnvit": {
+    "params_M": 23.546882,
+    "gflops": 41.894024704,
+    "input": "96x96x96"
+  },
+  "binary_hybrid_swinvit": {
+    "params_M": 20.365748,
+    "gflops": 55.549656192,
+    "input": "96x96x96"
+  },
+  "3class_cnn": {
+    "params_M": 11.245699,
+    "gflops": 85.802883072,
+    "input": "128x128x128"
+  },
+  "3class_swin": {
+    "params_M": 8.064309,
+    "gflops": 49.853725824,
+    "input": "96x96x96"
+  },
+  "3class_vit": {
+    "params_M": 12.302595,
+    "gflops": 5.695932672,
+    "input": "96x96x96"
+  }
+}

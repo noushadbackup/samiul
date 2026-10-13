@@ -12,6 +12,28 @@ grep -rn authortodo thesis_source/Chapters thesis_source/main.tex
 
 ---
 
+## Resolved from the code repository
+
+Source: `github.com/SamuelCormaken/Deep-Learning-for-Alzheimers-MRI`, commit `19e6863`.
+
+| Item | Answer (where it comes from) | Applied to |
+|---|---|---|
+| A1 validation split | 12% of the training subjects in each fold, held out at random (seed 42 + fold) for early stopping. The test fold is never used for selection. (`src/data/dataset.py`) | thesis Ch. 4, paper §III-A |
+| A3 imbalance | Every run uses a class-balanced `WeightedRandomSampler` **and** an inverse-frequency class-weighted loss; 3-class runs add focal loss on top. (`dataset.py`, `train.py`, configs) | thesis Ch. 4, paper §III-D |
+| A4 labels | The ADNI research group, constant for every subject. Up to 6 scans per subject within ≤ 2 years (median 1). (`labels.csv`) | thesis Ch. 4, paper §III-B |
+| A6 code URL | the repository above | thesis, paper |
+| B2 aggregation | Softmax probabilities are averaged, not logits. (`src/utils/metrics.py`) | thesis Ch. 4/5 |
+| B3 input sizes | DenseNet/ResNet use 128³; all transformer and hybrid models use 96³. The **thesis Appendix B was wrong** and has been rewritten from the YAML files. | thesis Ch. 3/4, App. B, paper Table II |
+| B4 augmentation | Flip, affine, noise, smoothing, bias field, gamma, intensity. **No elastic deformation or MixUp**, so slide 10 must drop both. | slide fix |
+| Age confound | **None.** The groups are age-matched (CN 74.8 vs AD 74.7 y, p = 0.93) and sex-matched (p = 0.24), and an age+sex-only baseline is at chance. (`conference_paper/analysis/cohort_and_age_baseline.py`) | thesis Ch. 4/5/8, paper |
+| Model size | Parameters and GFLOPs measured with the project's `build_model`. (`analysis/model_complexity.py`) | paper Table II |
+
+**New issues found in the code (please check):**
+- **Hospital name:** `scripts/make_compare_table.py` calls the hospital **"DhakaMed"**, but the thesis says **"Comfort Diagnostic Center"**. Use the correct name everywhere.
+- **Swin–ViT control:** the same script notes that the Swin–ViT checkpoint "uses a custom cross-attn ViT absent from current code". The thesis and paper now say so. Re-running `binary_hybrid_swinvit.yaml` with the released code would make it an exact control.
+- **Unreported configs:** configs exist for `binary_hybrid_cnnswin`, `binary_hybrid_resnetswin`, `3class_hybrid_cnnvit`, `3class_hybrid_cnnswin` and `3class_resnet`. **If any of these were run, send the `experiments/<run>_fold*/result.json` files.** They would fill the missing cells of the comparison.
+- **Missing result files:** no `result.json` or prediction files are in the repo (the CNN–ViT folds were deleted). The approximate confusion counts in `conference_paper/analysis/derived_stats.py` can only be made exact from the remaining runs' `result.json` (`test_subject.confusion_matrix`).
+
 ## A. Facts to fill in (red placeholders in the PDF)
 
 | # | Where | What to write |

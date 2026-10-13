@@ -179,21 +179,21 @@ Every experiment in this thesis is driven by a version-controlled YAML configura
 \begin{table}[H]
 \centering
 \caption{Configuration of the main experimental runs.}
-\begin{tabular}{|l|l|c|l|c|c|c|c|}
+\begin{tabular}{|l|l|c|l|c|c|c|c|c|}
 \hline
-\textbf{Run} & \textbf{Task} & \textbf{Input} & \textbf{Loss} & \textbf{Ep.} & \textbf{Warmup} & \textbf{Pat.} & \textbf{wd} \\
+\textbf{Run} & \textbf{Task} & \textbf{Input} & \textbf{Loss} & \textbf{Ep.} & \textbf{Warmup} & \textbf{Pat.} & \textbf{LR} & \textbf{wd} \\
 \hline
-binary\_cnn & binary & $96^3$ & CE + LS 0.1 & 100 & 8 & 18 & 0.03 \\
-binary\_resnet\_pretrained & binary & $96^3$ & CE + LS 0.1 & 100 & 8 & 18 & 0.03 \\
-binary\_hybrid\_cnnvit & binary & $96^3$ & CE + LS 0.1 & 100 & 8 & 18 & 0.03 \\
-binary\_hybrid\_swinvit & binary & $96^3$ & CE + LS 0.1 & 100 & 8 & 18 & 0.03 \\
-3class\_cnn & 3-class & $128^3$ & Focal ($\gamma{=}2$) & 80 & 5 & 15 & 0.01 \\
-3class\_swin & 3-class & $128^3$ & Focal ($\gamma{=}2$) & 80 & 5 & 15 & 0.01 \\
-3class\_vit & 3-class & $96^3$ & Focal ($\gamma{=}2$) & 80 & 5 & 15 & 0.01 \\
+binary\_cnn & binary & $128^3$ & CE + LS 0.1 & 80 & 5 & 15 & 1e-4 & 0.01 \\
+binary\_resnet\_pretrained & binary & $128^3$ & CE + LS 0.1 & 60 & 5 & 12 & 1e-4$^{*}$ & 0.01 \\
+binary\_hybrid\_cnnvit & binary & $96^3$ & CE + LS 0.1 & 100 & 8 & 18 & 1e-4 & 0.03 \\
+binary\_hybrid\_swinvit & binary & $96^3$ & CE + LS 0.1 & 100 & 8 & 18 & 1e-4 & 0.03 \\
+3class\_cnn & 3-class & $128^3$ & Focal ($\gamma{=}2$) & 80 & 5 & 15 & 1e-4 & 0.01 \\
+3class\_swin & 3-class & $96^3$ & Focal ($\gamma{=}2$) & 100 & 5 & 18 & 5e-5 & 0.02 \\
+3class\_vit & 3-class & $96^3$ & Focal ($\gamma{=}2$) & 100 & 8 & 18 & 1e-4 & 0.05 \\
 \hline
 \end{tabular}
 \end{table}
-All runs use learning rate $1\times10^{-4}$. The CNN backbone is a 3D DenseNet-121; the pretrained ResNet loads MedicalNet weights; the ViT is a compact 3D transformer (hidden 384, 6 layers, 6 heads, $16^3$ patches); the Swin backbone is the SwinUNETR-style encoder; the hybrids fuse two backbones by late concatenation.
+Values are taken from the YAML files in \texttt{configs/}. $^{*}$The MedicalNet backbone is frozen for the first 5 epochs and then trained at $10^{-5}$ (head at $10^{-4}$). Every run uses class-weighted loss together with a class-balanced sampler, batch size 2 with 4-step gradient accumulation, and gradient clipping at 1.0. The CNN backbone is a 3D DenseNet-121; the pretrained ResNet loads MedicalNet weights; the ViT is a compact 3D transformer (hidden 384, 6 layers, 6 heads, $16^3$ patches); the Swin backbone is the SwinUNETR-style encoder; the hybrids fuse two backbones by late concatenation.
 
 \section*{Reproduction Steps}
 \begin{enumerate}

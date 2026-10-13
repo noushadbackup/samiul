@@ -127,7 +127,7 @@ The system consists of five major modules:\\
 This module ingests 3D T1-weighted MRI volumes from ADNI, indexes them by image ID, attaches the CN/MCI/AD labels, and removes off-pipeline scans. It builds the stratified, subject-level cross-validation folds that guarantee leakage-free evaluation.
 
 \noindent\textbf{2. Preprocessing Module} \\
-This component reorients volumes to RAS, resamples them to 1.5\,mm isotropic spacing, crops the foreground, applies z-score intensity normalization over non-zero voxels, and resizes to a fixed cubic tensor ($96^3$ for all binary runs and the three-class ViT; $128^3$ for the three-class CNN and Swin; see Appendix~\ref{app:repro}). Deterministic outputs are cached; training augmentation (flips, affine, noise, intensity jitter) is applied on the fly.
+This component reorients volumes to RAS, resamples them to 1.5\,mm isotropic spacing, crops the foreground, applies z-score intensity normalization over non-zero voxels, and pads or crops to a fixed cubic tensor ($128^3$ for the DenseNet and ResNet models; $96^3$ for every transformer and hybrid model; see Appendix~\ref{app:repro}). Deterministic outputs are cached; training augmentation (flips, affine, noise, intensity jitter) is applied on the fly.
 
 \noindent\textbf{3. Feature Extraction and Classification Module} \\
 \begin{itemize}
