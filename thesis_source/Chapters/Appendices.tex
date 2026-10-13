@@ -6,7 +6,7 @@
 
 \vspace{0.3cm}
 
-\noindent\textbf{Thesis Title:} Alzheimer’s Disease Detection Using 3D MRI and Hybrid CNN--ViT Architecture with Explainability
+\noindent\textbf{Thesis Title:} Alzheimer's Detection Using 3D CNN--ViT With Explainable AI
 
 \noindent\textbf{Purpose:}  
 This questionnaire aims to gather expert and user perspectives on the use of 3D MRI, hybrid deep learning models, and explainable AI for Alzheimer’s disease detection.
@@ -28,8 +28,7 @@ $\square$ Other: \underline{\hspace{3cm}}
 
 \section*{Section B: Understanding of Alzheimer’s \& Imaging}
 
-\begin{enumerate}
-\setcounter{enumi}{3}
+\begin{enumerate}[resume]
 \item How important would 3D MRI be in early Alzheimer’s detection?\\
 $\square$ Moderately important \hspace{0.3cm}
 $\square$ Very important \hspace{0.3cm}
@@ -50,8 +49,7 @@ $\square$ Combination of both
 
 \section*{Section C: AI-Based Diagnosis}
 
-\begin{enumerate}
-\setcounter{enumi}{6}
+\begin{enumerate}[resume]
 \item How confident are you in using AI tools for Alzheimer’s diagnosis?\\
 $\square$ Slightly confident \hspace{0.3cm}
 $\square$ Moderately confident \hspace{0.3cm}
@@ -71,8 +69,7 @@ $\square$ High / Clinically interpretable
 
 \section*{Section D: Tools and Diagnostic Modalities}
 
-\begin{enumerate}
-\setcounter{enumi}{9}
+\begin{enumerate}[resume]
 \item Which diagnostic tool holds the most long-term promise for Alzheimer’s detection?\\
 $\square$ MRI \hspace{0.3cm}
 $\square$ PET Scan \hspace{0.3cm}
@@ -90,8 +87,7 @@ $\square$ Task-based MRI (e.g., memory tasks)
 
 \section*{Section E: Concerns, Ethics, and Future Directions}
 
-\begin{enumerate}
-\setcounter{enumi}{12}
+\begin{enumerate}[resume]
 \item What is your biggest concern about AI-based Alzheimer’s diagnosis?\\
 $\square$ Misdiagnosis / False predictions \hspace{0.3cm}
 $\square$ Ethical or legal issues \hspace{0.3cm}
@@ -106,8 +102,7 @@ $\square$ Yes
 
 \section*{Section F: Final Feedback}
 
-\begin{enumerate}
-\setcounter{enumi}{15}
+\begin{enumerate}[resume]
 \item Additional comments or suggestions:\\[0.3cm]
 \underline{\hspace{10cm}}\\[0.3cm]
 \underline{\hspace{10cm}}
@@ -115,7 +110,7 @@ $\square$ Yes
 
 \vspace{0.6cm}
 \section*{Completed Expert Questionnaire and Attestation}
-\noindent The following domain questionnaire was completed and signed by \textbf{Dr.\ Ziaur Rahman} (Physician \& Surgeon, Comfort Diagnostic Center), the clinician who guided the labelling of the hospital scans used in the preliminary external-validation study (Section~\ref{sec:extval}). The responses are reproduced verbatim.
+\noindent The questionnaire above was prepared for future use; its aggregate responses are not analysed in this thesis. Separately, the following open-ended domain interview was completed and signed by \textbf{Dr.\ Ziaur Rahman} (Physician \& Surgeon, Comfort Diagnostic Center), the clinician who guided the labelling of the hospital scans used in the preliminary external-validation study (Section~\ref{sec:extval}). The responses are reproduced verbatim.
 
 \begin{enumerate}
 \item \textbf{What is Alzheimer's disease in general?}\\
@@ -167,7 +162,7 @@ Early diagnosis allows patients to receive treatments sooner, plan for future ca
 
 \vspace{0.6cm}
 
-\chapter{Reproducibility and Experimental Configuration}
+\chapter{Reproducibility and Experimental Configuration}\label{app:repro}
 Every experiment in this thesis is driven by a version-controlled YAML configuration file, and all models share the same data pipeline and split files. This appendix records the exact settings so the results can be reproduced.
 
 \section*{Common Settings (all runs)}

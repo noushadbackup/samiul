@@ -49,7 +49,7 @@ Although the project used mostly publicly available datasets and open-source too
 \hline
 \textbf{Item/Resource} & \textbf{Quantity} & \textbf{Unit Cost (BDT)} & \textbf{Total Estimated Cost(BDT)} \\
 \hline
-High-performance GPU Access(Cloud/Local) & 20 hours & 150 BDT/hour & 3000\\
+GPU compute on the local RTX 5060 Ti (costed at a cloud-equivalent rate) & \authortodo{total GPU-hours from the training logs} & 150 BDT/hour & \authortodo{GPU-hours $\times$ 150}\\
 \hline
 External Storage for MRI Files (SSD) & 1 & 4500 & 4500\\
 \hline
@@ -61,14 +61,14 @@ Documentation Printing \& Binding & -- & 600 & 600\\
 \hline
 Transport \& Communication & -- & 1000 & 1000\\
 \hline
-\textbf{Total Estimated Cost} & -- & -- & \textbf{9100 BDT}\\
+\textbf{Total Estimated Cost} & -- & -- & \textbf{\authortodo{recompute: 6100 BDT + GPU cost}}\\
 \hline
 \end{longtable}
 \end{sloppypar}
 
 \textbf{Key Notes}\\
 The ADNI dataset was accessed freely under an academic license.\\
-GPU compute time was the major cost factor due to 3D MRI preprocessing and 3D model training.
+GPU compute time was the major cost factor due to 3D MRI preprocessing and 3D model training: seven model configurations were each trained over five folds for up to 80--100 epochs. The cost of the GPU workstation itself is not included.
 All ML frameworks used were fully open-source.\\
 \section{Summary}
 The project followed a structured timeline beginning with requirement analysis and dataset preparation, progressing through model development using 3D CNN and Vision Transformers, and concluding with evaluation and documentation. The Gantt chart ensured clear planning, logical task distribution, and continuous progress tracking.\\

@@ -43,7 +43,7 @@ The expected outcomes of this project include:
 The project promotes early diagnosis and awareness of Alzheimer's, helping families and caregivers prepare for long-term support. It contributes to reducing stigma through improved understanding and detection. By providing automated diagnostic support, the system also reduces dependency on specialized radiologists, making cognitive health screening more accessible.
 
 \subsection{Impact on Health, Safety, and Legal Issues}
-The project promotes safer clinical decision support by providing transparent, explainable predictions. It is intended strictly as a research and decision-support tool, not an autonomous diagnostic device. Handling MRI data raises privacy and ethical concerns, addressed here through the use of already-anonymized, ethically approved data and honest reporting of performance.
+The project promotes safer clinical decision support by providing transparent, explainable predictions. It is intended strictly as a research and decision-support tool, not an autonomous diagnostic device. Handling MRI data raises privacy and ethical concerns, addressed here by training and evaluating on de-identified ADNI data under its data-use agreement (the ethical basis of the small hospital pilot is stated in Section~\ref{sec:extval}) and by honest reporting of performance.
 
 \subsection{Impact on Environment and Sustainability Issues}
 The design favours computational efficiency—cached preprocessing, mixed-precision training on a single GPU, and compact models—reducing energy use compared with large, transformer-only systems trained on massive data.

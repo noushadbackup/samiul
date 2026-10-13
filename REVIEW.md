@@ -3,6 +3,8 @@
 **Reviewed:** `Thesis_Final_Report (1).pdf` (105 pp.), the Overleaf source in `Thesis_Report_Overleaf .zip` (8 chapters, 2 appendices, 45 references, 43 figures), and `Copy of Final Slides Correction.pdf` (51 slides).
 **Not reviewable:** the code. `Deep-Learning-for-Alzheimers-MRI` is a git submodule pointer (commit `19e6863`) with no `.gitmodules`. It is empty here, and the thesis's own code link is a placeholder (`github.com/your-username/alzheimers-3d-cnn-vit`). Every point below that depends on the code is marked **[verify in code]**.
 
+**Status (follow-up):** every text-level fix below has been applied to the LaTeX source in `thesis_source/`. The source compiles cleanly to `Thesis_Final_Report_revised.pdf`, and the revised source is packaged as `Thesis_Report_Overleaf_revised.zip`; the original zip is unchanged. `AUTHORS_TODO.md` lists what only the authors can do: facts to fill in, code checks, and experiments. `SLIDE_FIXES.md` gives replacement text for each slide.
+
 ---
 
 ## 1. What the project is
@@ -43,6 +45,7 @@
 - Better: repeat the CV with 3 seeds. One seed and 5 folds cannot separate a 1-point effect.
 
 ### C4. Possible test-fold reuse for early stopping / model selection [verify in code]
+- **Update after a closer look:** the binary-CNN training curves peak at about 0.87 (fold 0) and 0.93 (fold 1) validation macro-F1. The reported test scores for those folds are 0.77 and 0.81. If the test fold were the early-stopping signal, the reported scores would sit near those peaks. This points to a **separate validation split**, which lowers the risk. It still has to be confirmed from the code and stated in §4.
 - Early stopping and checkpoint selection use "validation subject-level macro-F1". The 5-fold diagram on slide 8 shows only train (green) and test (orange). There is no validation block.
 - If the held-out fold is both the early-stopping signal and the reported score, the results are **optimistically biased**. The validation curves are very noisy (slides 24–27 swing ±0.1 between epochs), so taking the best epoch can add several points.
 - This would undercut the thesis's central "honest evaluation" claim.

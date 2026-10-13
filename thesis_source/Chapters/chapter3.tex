@@ -32,11 +32,11 @@ System Developers(Team) & Design, implement, and optimize the full pipeline from
 \end{longtable}
 \end{sloppypar}
 
-In addition to the roles above, this project engaged four practising clinicians as expert stakeholders to review the system's outputs and judge its clinical reliability; their consolidated feedback is summarised in Table~\ref{tab:clin_feedback}. In particular, \textbf{Dr.\ Ziaur Rahman} (Physician \& Surgeon, \textbf{Comfort Diagnostic Center}) guided the labelling of the hospital scans used in the preliminary external-validation study (Section~\ref{sec:extval}); those labels were derived from routine radiology reports and are therefore treated as \emph{weak} labels rather than research-protocol diagnoses. These clinicians are key stakeholders for assessing the system's real-world, cross-site applicability and the clinical value of its explainability outputs.
+In addition to the roles above, four practising clinicians gave \emph{informal} feedback on the system's outputs; their opinions are summarised in Table~\ref{tab:clin_feedback}. This was not a structured reader study: no blinding, fixed case set, or scoring protocol was used, so the table records stakeholder opinion and is \emph{not} evidence of clinical reliability --- which, as Section~\ref{sec:extval} shows, has not yet been demonstrated on external data. In particular, \textbf{Dr.\ Ziaur Rahman} (Physician \& Surgeon, \textbf{Comfort Diagnostic Center}) guided the labelling of the hospital scans used in the preliminary external-validation study (Section~\ref{sec:extval}); those labels were derived from routine radiology reports and are therefore treated as \emph{weak} labels rather than research-protocol diagnoses. These clinicians are key stakeholders for a future, properly designed evaluation of the system's cross-site applicability and the clinical value of its explainability outputs.
 
 \begin{table}[H]
 \centering
-\caption{\textbf{Clinical stakeholder feedback.} Opinions of four practising clinicians on the reliability of the system and the clinical relevance of its Grad-CAM explanations.}
+\caption{\textbf{Informal clinical stakeholder feedback.} Unstructured opinions of four practising clinicians on the system and its Grad-CAM explanations (not a blinded reader study).}
 \label{tab:clin_feedback}
 \begin{tabular}{|p{2.8cm}|p{2.6cm}|p{2.5cm}|p{3.2cm}|p{1.7cm}|}
 \hline
@@ -101,7 +101,7 @@ Below is a list of Non-Functional Requirements(NFR):
 \hline
 \textbf{Requirement ID} & \textbf{Non-Functional Requirement} & \textbf{Description}\\
 \hline
-NFR1 & Accuracy & Achieve a strong, \emph{honest} subject-level result (target: high-70s to low-80s\% accuracy / $\geq0.78$ macro-F1 on binary CN-vs-AD), rather than an inflated leakage-based number.\\
+NFR1 & Accuracy & Achieve an \emph{honest} subject-level result that clearly exceeds the majority-class baseline and is reported with fold-wise variance, rather than an inflated leakage-based number.\\
 \hline
 NFR2 & Reliability & Produce consistent results across folds; report mean\,$\pm$\,std, not a single lucky split.\\
 \hline
@@ -127,7 +127,7 @@ The system consists of five major modules:\\
 This module ingests 3D T1-weighted MRI volumes from ADNI, indexes them by image ID, attaches the CN/MCI/AD labels, and removes off-pipeline scans. It builds the stratified, subject-level cross-validation folds that guarantee leakage-free evaluation.
 
 \noindent\textbf{2. Preprocessing Module} \\
-This component reorients volumes to RAS, resamples them to 1.5\,mm isotropic spacing, crops the foreground, applies z-score intensity normalization over non-zero voxels, and resizes to a fixed $128^3$ (CNN/ResNet) or $96^3$ (ViT/Swin/hybrid) tensor. Deterministic outputs are cached; training augmentation (flips, affine, noise, intensity jitter) is applied on the fly.
+This component reorients volumes to RAS, resamples them to 1.5\,mm isotropic spacing, crops the foreground, applies z-score intensity normalization over non-zero voxels, and resizes to a fixed cubic tensor ($96^3$ for all binary runs and the three-class ViT; $128^3$ for the three-class CNN and Swin; see Appendix~\ref{app:repro}). Deterministic outputs are cached; training augmentation (flips, affine, noise, intensity jitter) is applied on the fly.
 
 \noindent\textbf{3. Feature Extraction and Classification Module} \\
 \begin{itemize}
@@ -168,7 +168,7 @@ Figure~\ref{fig:block} shows the high-level block diagram of the system, Figure~
 
 \subsection{Design Alternatives and Rationale}
 Several architectural alternatives were considered. A standalone 3D CNN captures local spatial features strongly but has a limited receptive field for long-range relationships. A standalone 3D Vision Transformer models global context well but is data-hungry and, as the experiments confirm, underperforms when trained from scratch on a few hundred subjects. A 2D slice-based model is easy and fast but discards volumetric context and, worse, invites patient-level data leakage.\\
-Weighing performance potential, resource cost, and --- crucially --- evaluation honesty, the hybrid 3D CNN--3D ViT architecture was selected: the CNN branch supplies fine local anatomical detail and the inductive bias the transformer lacks, while the ViT branch adds global reasoning across the whole volume. Fusing the two, combined with 3D Grad-CAM, yields a design that is modular, efficient on a single 16\,GB GPU, and --- as Chapter~\ref{cha:results} shows --- the top performer on the binary task, while remaining fair to compare against its own single-model baselines.
+Weighing performance potential, resource cost, and --- crucially --- evaluation honesty, the hybrid 3D CNN--3D ViT architecture was selected: the CNN branch supplies fine local anatomical detail and the inductive bias the transformer lacks, while the ViT branch adds global reasoning across the whole volume. Fusing the two, combined with 3D Grad-CAM, yields a design that is modular, efficient on a single 16\,GB GPU, and --- as Chapter~\ref{cha:results} shows --- statistically tied for the best binary result with the standalone CNN, which is itself an informative outcome of a fair comparison against its own single-model baselines.
 
 \section{Pseudocode for Proposed 3D CNN--ViT Hybrid Model}
 \begin{algorithm}[H]

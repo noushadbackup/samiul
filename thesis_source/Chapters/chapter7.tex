@@ -4,70 +4,47 @@ This chapter outlines how the project complies with relevant engineering standar
 This project was designed following internationally recognized software, data handling, and ethical standards. The system processes sensitive medical data (MRI scans) and applies deep learning models (3D CNN and Vision Transformer) for Alzheimer’s disease prediction; therefore, compliance with professional engineering practices was essential.\\
 The design also incorporates considerations of data privacy, safety, environmental sustainability, fairness in algorithms, and responsible use of computing resources.
 \subsection{Software Standards}
-The software development process follows the following standards:\\
-\textbf{IEEE 829 (Software Test Documentation Standard)}\\
-Requirements → Design → Implementation → Testing → Deployment.\\
-Our project followed these phases to structure the deep learning workflow.\\
-\textbf{IEEE 829 (ISO/IEC 9126 (Software Quality Model))}\\
-Ensured :\\
-Reliability → Stability of ML model training and validation\\
-Usability → Clear dataset documentation and reproducible scripts\\
-Efficiency → Resource-aware training with optimized GPU usage\\
-\textbf{IEEE 829 (ISO/IEC 25010)}\\
-Performance efficiency measured through:
+The software was developed with reference to the following standards and guidelines. They were used as frameworks for structuring the work; no formal certification was sought.\\
+\textbf{ISO/IEC/IEEE 12207 (Software life-cycle processes)}\\
+The work followed the life-cycle stages of requirements analysis (Chapter~\ref{cha:SystemAnalysisAndDesignU}), design, implementation, verification, and documentation.\\
+\textbf{ISO/IEC 25010 (Software product quality model)}\\
+The quality characteristics most relevant to a research pipeline were addressed as follows:
 \begin{itemize}
-    \item Training time
-    \item Memory usage (crucial for 3D MRI)
-    \item Model inference latency
+    \item \textbf{Reliability} --- fixed random seeds, saved split files, and fold-wise reporting (mean $\pm$ std).
+    \item \textbf{Maintainability} --- modular data, model, training, evaluation, and explainability components behind a common interface.
+    \item \textbf{Performance efficiency} --- cached preprocessing, mixed-precision training, and gradient accumulation to fit a 16\,GB GPU.
 \end{itemize}
-\subsection{Hardware Standards}
-Although the project is primarily software-based, medical imaging hardware plays a role because the datasets use MRI scanners. Relevant standards include:\\
-DICOM Standard (Digital Imaging and Communications in Medicine\\
-Ensures :\\
-Correct metadata handling.\\
-Consistency of voxel dimensions.\\
-Image orientation and acquisition parameters.\\
-\textbf{IEEE 11073 (Medical Device Communication Standards)}\\
-Ensures interoperability and safe data communication from clinical equipment.
-\textbf{High-Performance Computing (HPC) Safety Standards}\\
-GPU usage adheres to:\\
-Safe VRAM allocation.
-Thermal management (depending on cloud/local hardware).
+\textbf{Reporting guideline: CLAIM (Checklist for Artificial Intelligence in Medical Imaging)}\\
+CLAIM was used as a reference for what to report: data source and curation, subject-level partitioning, reference standard, model and training details, evaluation metrics with variability, and limitations.
 
-\subsection{Other Standards}
-\textbf{Data Privacy \& Research Ethics}\\
-Follows HIPAA principles for medical data anonymity.
-The ADNI dataset is ethically approved and fully anonymized, and is accessed under an academic data-use agreement.\\
-\textbf{AI Ethics \& Fairness Standards}\\
-IEEE 7000 (Ethical AI Design)
-EU AI Risk Management Guidelines (general awareness)\\
-Practice followed:\\
-Avoiding model bias through balanced datasets
-Ensuring transparent reporting
-Avoiding misuse of predictive medical information
+\subsection{Data and Imaging Standards}
+\textbf{DICOM and NIfTI-1}\\
+MRI scanners store images in DICOM; ADNI distributes the pre-processed volumes used here in NIfTI-1 format, which preserves voxel spacing and orientation metadata. The pipeline reads that metadata to reorient every volume to RAS and resample it to isotropic spacing.
+
+\subsection{Other Standards and Regulations}
+\textbf{Data privacy and research ethics}\\
+ADNI data are de-identified by the ADNI consortium and were accessed under the ADNI Data Use Agreement, with HIPAA de-identification principles as the reference. The hospital scans used in the preliminary external pilot are covered by the ethics statement in Section~\ref{sec:extval}.\\
+\textbf{Medical-device and AI regulation (awareness only)}\\
+Software that supports diagnosis may fall under medical-device rules --- IEC 62304 (medical-device software life cycle), ISO 14971 (risk management), and the EU AI Act, which treats AI used in medical devices as high-risk. This thesis is a research prototype and makes no compliance claim; the standards are listed to show what clinical deployment would require.\\
+\textbf{Ethically aligned design}\\
+IEEE 7000 (addressing ethical concerns during system design) informed the practices adopted here: transparent reporting of negative results, explicit statement of limitations, and positioning the system as decision support rather than diagnosis.
 
 \section{Design Constraints}
 
 \subsection{Ethical and Professional Responsibilities}
-This project follows established ethical and professional standards to ensure responsible development and fair use of the system. All results are reported honestly, without any form of exaggeration or falsification of accuracy or performance outcomes. The study also respects intellectual property rights by properly citing the ADNI dataset used. To protect privacy, all MRI scans are fully anonymized, and no personal or identifiable information is included. The model is trained carefully to reduce algorithmic bias, especially by class-weighting the minority class (MCI) so that the imbalance in the cohort does not skew the predictions. Additionally, the system is developed with responsible machine learning practices in mind, and it is clearly stated that the model is intended only for research purposes and should not be used as a clinical diagnostic tool.
+This project follows established ethical and professional standards to ensure responsible development and fair use of the system. All results are reported honestly, without any form of exaggeration or falsification of accuracy or performance outcomes. The study also respects intellectual property rights by properly citing the ADNI dataset used. To protect privacy, only de-identified MRI scans are used, and no personal or identifiable information appears in this thesis. Class imbalance (MCI is the minority) is addressed with class weighting and macro-F1 reporting; demographic fairness (for example, performance by sex or age group) was not evaluated and is left to future work. Additionally, the system is developed with responsible machine learning practices in mind, and it is clearly stated that the model is intended only for research purposes and should not be used as a clinical diagnostic tool.
 \subsection{Environmental and Sustainability Considerations}
-The design prioritizes sustainability by optimizing computational and environmental impact:\\
-\textbf{Efficient GPU Usage}\\
-Minimizing training epochs using early stopping and batch normalization.\\
-\textbf{Energy-efficient Model Architecture}\\
-Using optimized 3D CNN layers
-Choosing ViT variants that reduce computational load\\
-\textbf{Dataset Storage Optimization}\\
-Compressing MRI volumes while preserving spatial fidelity.\\
-\textbf{Cloud Sustainability Awareness}\\
- If using cloud GPU:\\
-Providers like AWS, Google Cloud use carbon-neutral infrastructure.\\
-\textbf{Reducing Redundant Computation}\\
-Reuse preprocessed volumes.
-Cache intermediate results (e.g., normalized 3D volumes)
+The design limits computational and environmental cost in the following ways:
+\begin{itemize}
+    \item \textbf{Single local GPU.} All training ran on one consumer GPU (RTX 5060 Ti, 16\,GB) rather than a multi-GPU cluster.
+    \item \textbf{Early stopping.} Training stops when validation macro-F1 stops improving, avoiding unnecessary epochs.
+    \item \textbf{Mixed precision.} Automatic mixed precision reduces memory traffic and computation per step.
+    \item \textbf{Cached preprocessing.} The deterministic preprocessing is computed once and reused across epochs, folds, and models.
+    \item \textbf{Compact models.} Compact backbones (DenseNet-121, a 6-layer ViT) were preferred over large transformer models.
+\end{itemize}
 
 \subsection{Health and Safety Considerations}
-Although this is primarily a software-based project, several important health and safety aspects were carefully considered. The MRI data used in the study is completely anonymized and sourced from ethically approved datasets, ensuring no exposure to sensitive patient information. In cases where laboratory resources such as GPU machines were used, standard safety practices were followed, including preventing overheating, maintaining proper ventilation, and ensuring secure electrical connections. User safety was also taken into account, as the system does not make autonomous clinical decisions and functions only as an analytical support tool rather than a medical diagnostic system. Additionally, the project complies with medical data handling standards by avoiding raw clinical identifiers and ensuring that all datasets are securely stored and encrypted during use.
+Although this is primarily a software-based project, several important health and safety aspects were carefully considered. The ADNI data used for training and evaluation are de-identified and were collected under ADNI's ethical approvals; the ethical basis for the small hospital pilot is stated separately in Section~\ref{sec:extval}. In cases where laboratory resources such as GPU machines were used, standard safety practices were followed, including preventing overheating, maintaining proper ventilation, and ensuring secure electrical connections. User safety was also taken into account, as the system does not make autonomous clinical decisions and functions only as an analytical support tool rather than a medical diagnostic system. Additionally, no raw clinical identifiers are used, and imaging data are kept on the project workstation and not redistributed, in line with the ADNI Data Use Agreement.
 
 \section{Complex Engineering Problem (CEP) Coverage}
 This project meets the characteristics of a Complex Engineering Problem (CEP) through its involvement with large-scale, high-dimensional MRI data; advanced AI models; conflicting technical constraints; and multi-disciplinary medical–engineering aspects.\\
@@ -87,7 +64,7 @@ P3: Depth of Analysis Required & The problem has no obvious solution and require
 \hline
 P4: Familiarity of Issues & Involves unfamiliar 3D medical imaging tasks such as MRI preprocessing, Alzheimer's classification, subject-level evaluation, and XAI interpretation. [K4, K6, K8] & CLO1, CLO7 & PLO4, PLO5, PLO12\\
 \hline
-P6: Stakeholder Involvement & Various stakeholders are involved --- healthcare professionals and patients --- to evaluate the model. [K5, K8] & CLO2, CLO5, CLO6 & PLO6, PLO8, PLO10\\
+P6: Stakeholder Involvement & Various stakeholders are involved --- practising clinicians gave informal feedback on the model and its explanations, and a collaborating diagnostic centre supplied pilot data. [K5, K8] & CLO2, CLO5, CLO6 & PLO6, PLO8, PLO10\\
 \hline
 P7: Interdependence & Multiple interdependent modules --- preprocessing, 3D feature extraction, fusion, classification, evaluation, and XAI --- work together as one complete system pipeline. [K5, K6] & CLO3, CLO7 & PLO3, PLO5\\
 \hline
@@ -127,12 +104,12 @@ This chapter demonstrated how the project fulfills the following:\\
     \item K3: Core engineering fundamentals such as convolution theory, transformer attention mechanisms, and               algorithmic modeling are covered.
     \item K4: Specialist engineering knowledge of 3D medical image analysis, transformer architectures, and volumetric preprocessing is applied.
     \item K5: The project involves engineering design of a functional hybrid 3D CNN–ViT architecture and a full MRI processing pipeline.
-    \item K6: It will use engineering practice tools including Python, PyTorch, MONAI, GPU computing, and medical imaging libraries.
+    \item K6: The project uses engineering practice tools including Python, PyTorch, MONAI, GPU computing, and medical imaging libraries.
     \item K7: The system raises healthcare, ethical, and societal considerations involving medical data privacy,     clinical impact, and responsible AI.
-    \item K8: The project require studying research literature including CNN, transformers, MRI-based Alzheimer's 
+    \item K8: The project requires engaging with current research literature on CNNs, transformers, MRI-based Alzheimer's classification, data leakage in evaluation, and explainable AI.
 \end{itemize}
 \textbf{Complex Engineering Problems (P1–P7)}\\
-The proposed research on Alzheimer’s disease detection using 3D MRI scans qualifies as a Complex Engineering Problem due to several contributing factors. It requires in-depth knowledge of neuroimaging, volumetric preprocessing, and advanced deep learning architectures, justifying the inclusion of P1. The project also involves multiple stakeholders --- clinicians who assess the model's reliability and its explanations --- corresponding to P6. Developing a hybrid 3D CNN–Vision Transformer model demands significant analytical depth and original design decisions, fulfilling P3, while the unfamiliar nature of medical imaging analysis supports P4. Additionally, the project consists of multiple interdependent modules—ranging from data preprocessing to feature extraction, fusion, and explainability—corresponding to P7. Together, these attributes demonstrate that the project involves multifaceted engineering complexity beyond routine problem-solving.\\
+The proposed research on Alzheimer’s disease detection using 3D MRI scans qualifies as a Complex Engineering Problem due to several contributing factors. It requires in-depth knowledge of neuroimaging, volumetric preprocessing, and advanced deep learning architectures, justifying the inclusion of P1. The project also involves multiple stakeholders --- clinicians who gave feedback on the model and its explanations, and a diagnostic centre that supplied pilot data --- corresponding to P6. Developing a hybrid 3D CNN–Vision Transformer model demands significant analytical depth and original design decisions, fulfilling P3, while the unfamiliar nature of medical imaging analysis supports P4. Additionally, the project consists of multiple interdependent modules—ranging from data preprocessing to feature extraction, fusion, and explainability—corresponding to P7. Together, these attributes demonstrate that the project involves multifaceted engineering complexity beyond routine problem-solving.\\
 \textbf{Complex Engineering Activities (A1–A5)}\\
 The study also satisfies several criteria for Complex Engineering Activities. It makes use of diverse computational, informational, and technological resources, including a large-scale 3D MRI dataset, GPU hardware, and specialized imaging and deep learning libraries, which reflect A1. The project requires resolving complex interactions between preprocessing workflows, model components, and dataset variations, thereby involving A2. The potential impact on early Alzheimer detection and healthcare decision-making highlights the broader societal significance described in A4. Finally, the project incorporates advanced engineering tasks that extend beyond typical undergraduate experience, fulfilling A5. These characteristics collectively demonstrate that the work constitutes a complex engineering activity involving creativity, technical depth, and impactful application.
 
