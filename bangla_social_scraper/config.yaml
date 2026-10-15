@@ -1,0 +1,279 @@
+# =============================================================================
+# Bangla / Banglish social-media research collector — configuration
+# =============================================================================
+# Every value here can be edited. Nothing about the research topic is
+# hard-coded in the Python code: domains and keywords live only in this file
+# (and optionally in keywords/<domain>.txt override files).
+# Secrets (API keys / tokens) belong in .env, never in this file.
+# =============================================================================
+
+collection:
+  target: 1000              # default number of ACCEPTED unique records per batch
+  domain: sports            # default domain if --domain is not given
+  platforms: [youtube]      # default platform list if --platform is not given
+  # Round-robin order when --platform all is used. Platforms that are disabled,
+  # unconfigured, or that fail are skipped and the others keep collecting.
+  platform_order: [youtube, facebook, instagram, tiktok]
+  # Stop a run after this many wall-clock minutes (0 = no limit). The batch
+  # stays resumable.
+  max_runtime_minutes: 0
+  # If a platform yields zero new comments for this many consecutive work
+  # units (pages), treat it as exhausted for this run.
+  max_empty_pages_per_platform: 200
+
+paths:
+  database: checkpoints/scraper_state.sqlite3
+  raw_dir: data/raw
+  accepted_dir: data/accepted
+  rejected_dir: data/rejected
+  log_dir: logs
+
+# -----------------------------------------------------------------------------
+# Platform connectors. Each one is independently enable-able.
+# -----------------------------------------------------------------------------
+sources:
+  youtube:
+    enabled: true
+    api_base: https://www.googleapis.com/youtube/v3
+    request_delay_seconds: 0.5     # minimum gap between requests
+    timeout_seconds: 30
+    max_retries: 5
+    backoff_base_seconds: 2.0
+    backoff_max_seconds: 120
+    # Quota accounting (YouTube Data API default is 10,000 units/day).
+    # The collector stops YouTube before this budget is exceeded.
+    daily_quota_units: 9000
+    # search.list parameters
+    region_code: BD
+    relevance_language: bn
+    search_order: relevance        # relevance | date | viewCount
+    published_after: null          # e.g. "2024-01-01T00:00:00Z" or null
+    max_search_pages_per_keyword: 5
+    min_comment_count: 5           # skip videos with fewer public comments
+    # commentThreads.list parameters
+    comment_order: relevance       # relevance | time
+    include_replies: true
+    fetch_all_replies: false       # true = extra comments.list calls (1 unit each)
+    # Stop reading a video early when it is clearly not producing
+    # Bangla/Banglish data (saves quota; nothing is fabricated).
+    low_yield_min_processed: 200
+    low_yield_min_accept_rate: 0.02
+
+  facebook:
+    enabled: true
+    api_base: https://graph.facebook.com
+    graph_api_version: v23.0
+    request_delay_seconds: 1.0
+    timeout_seconds: 30
+    max_retries: 4
+    backoff_base_seconds: 5.0
+    backoff_max_seconds: 300
+    # Use Graph API Pages Search (requires Page Public Content Access).
+    # If the token lacks permission the connector falls back to `pages` below.
+    use_page_search: true
+    max_posts_pages_per_source: 4  # pages of /{page}/posts (25 posts each)
+    require_keyword_match: false   # only keep posts whose text matches a keyword
+    # Public page IDs or usernames per domain (edit freely).
+    pages:
+      sports: []
+      film_drama: []
+      music: []
+      influencers_creators: []
+      tv_reality: []
+      lifestyle_vlogging: []
+      gaming_streaming: []
+
+  instagram:
+    enabled: true
+    api_base: https://graph.facebook.com
+    graph_api_version: v23.0
+    request_delay_seconds: 1.5
+    timeout_seconds: 30
+    max_retries: 4
+    backoff_base_seconds: 5.0
+    backoff_max_seconds: 300
+    # Hashtag search: Meta allows max 30 unique hashtags per 7 days per account.
+    use_hashtag_search: true
+    hashtag_edges: [top_media, recent_media]
+    max_media_pages_per_hashtag: 2
+    # Public Business/Creator accounts read via Business Discovery.
+    max_media_pages_per_account: 2
+    # Collect captions of public posts/reels as record_type=post.
+    collect_captions: true
+    # Comments are only available through the API for media owned by the
+    # authenticated account. true = also read comments on your own media.
+    collect_own_media_comments: false
+    hashtags:
+      sports: [bdcricket, banglacricket, bangladeshcricket, bpl, tigers]
+      film_drama: [banglanatok, banglamovie, dhallywood, bengalidrama]
+      music: [banglagaan, banglasong, banglamusic, bengalisong]
+      influencers_creators: [banglavlog, bdinfluencer, bangladeshicreator]
+      tv_reality: [banglarealityshow, bangladeshtv]
+      lifestyle_vlogging: [banglavlog, bdlifestyle, dhakavlog]
+      gaming_streaming: [banglagaming, bdgamer, banglagamer]
+    accounts:
+      sports: []
+      film_drama: []
+      music: []
+      influencers_creators: []
+      tv_reality: []
+      lifestyle_vlogging: []
+      gaming_streaming: []
+
+  tiktok:
+    enabled: true
+    api_base: https://open.tiktokapis.com/v2
+    request_delay_seconds: 1.5
+    timeout_seconds: 45
+    max_retries: 4
+    backoff_base_seconds: 5.0
+    backoff_max_seconds: 300
+    # TikTok Research API daily limit is 1,000 requests; stay below it.
+    daily_request_budget: 900
+    region_codes: [BD]
+    lookback_days: 180             # searched in 30-day windows (API maximum)
+    max_pages_per_window: 3
+    min_comment_count: 5
+
+# -----------------------------------------------------------------------------
+# Language filter
+# -----------------------------------------------------------------------------
+language:
+  accept: [bangla, banglish, mixed]   # add "english" / "other" to keep them
+  # Bengali-script text is labelled "mixed" when at least this share of word
+  # tokens is Latin-script.
+  mixed_min_latin_ratio: 0.15
+  # Latin-only text needs at least this many Banglish lexicon hits.
+  banglish_min_hits: 1
+  # Latin-only text with Banglish hits is "mixed" when English hits make up at
+  # least this share of (banglish + english) hits.
+  banglish_mixed_english_ratio: 0.5
+  extra_banglish_words_file: processing/lexicons/banglish_extra.txt
+
+# -----------------------------------------------------------------------------
+# Quality filter
+# -----------------------------------------------------------------------------
+quality:
+  min_characters: 3              # letters/marks only; short comments are kept
+  duplicate_detection: true
+  near_duplicate_detection: true
+  reject_keyboard_spam: true
+  reject_advertising_spam: true
+  # Case-insensitive regular expressions. A match => rejection_reason "spam".
+  spam_patterns:
+    - 'subscribe\s+(to\s+)?my\s+channel'
+    - '(check|visit|watch)\s+(out\s+)?my\s+(channel|video|page|profile)'
+    - 'my\s+channel\s*(e|a)?\s*(subscribe|visit)'
+    - 'free\s+(followers|likes|subscribers|views)'
+    - '(earn|income|make)\s+(money|\$|\d+)\s*(online|daily|per\s+day|from\s+home)?'
+    - '\b(whats\s?app|telegram|imo)\b.{0,25}(\+?88)?01[3-9]\d{8}'
+    - '(\+?88)?01[3-9]\d{8}'
+    - '\b(bitcoin|crypto|forex|binary\s+option|1xbet|betwinner|melbet|casino)\b'
+    - '\b(promo|discount|coupon)\s*code\b'
+    - '(inbox|dm)\s+(me|koren|korun|for)'
+    - 'আমার\s*চ্যানেল\S*\s*(সাবস্ক্রাইব|ভিজিট|ঘুরে)'
+    - 'সাবস্ক্রাইব\s*কর(ুন|েন|ো)\s*(প্লিজ|প্লীজ)?\s*(আমার)?'
+    - 'ইনবক্স\s*কর(ুন|েন)'
+    - 'অর্ডার\s*কর(তে|ুন)'
+    - 'ঘরে\s*বসে\s*(আয়|ইনকাম|টাকা)'
+  # Copy-paste / bot detection: the same text posted by this many distinct
+  # authors is retroactively rejected as spam (detail: bot_copy) if it is at
+  # least `bot_copy_min_length` characters long.
+  bot_copy_author_threshold: 3
+  bot_copy_min_length: 25
+
+# -----------------------------------------------------------------------------
+# Duplicate detection
+# -----------------------------------------------------------------------------
+dedup:
+  scope: global                  # global = across all batches & platforms; batch = within a batch
+  ngram_size: 3                  # character n-grams for MinHash
+  num_permutations: 128
+  bands: 32                      # LSH bands (rows per band = permutations / bands)
+  jaccard_threshold: 0.80        # verified similarity needed to call it a near-duplicate
+  near_dup_min_length: 12        # shorter texts only use the exact "skeleton" match
+
+# -----------------------------------------------------------------------------
+# Source diversity
+# -----------------------------------------------------------------------------
+diversity:
+  max_per_post: 50
+  max_per_creator: 150
+  min_distinct_posts_per_1000: 20
+  min_distinct_creators: 5
+  # Lower bound used when scaling the post minimum to small targets
+  # (e.g. --target 50 still needs >= 5 distinct posts => <= 10 per post).
+  min_distinct_posts_floor: 5
+
+# -----------------------------------------------------------------------------
+# Privacy
+# -----------------------------------------------------------------------------
+privacy:
+  # Author identifiers are HMAC-SHA256 hashed with ANON_SALT from .env.
+  # Usernames / display names / profile images are never stored.
+  # comment_text is kept verbatim. Set true to replace @mentions inside the
+  # text with "@user" in EXPORTED files only (the database keeps the original).
+  mask_mentions_in_export: false
+
+# -----------------------------------------------------------------------------
+# Export
+# -----------------------------------------------------------------------------
+export:
+  formats: [csv, jsonl, parquet]
+  csv_encoding: utf-8-sig        # BOM so Excel opens Bangla text correctly
+  export_rejected: true
+
+# -----------------------------------------------------------------------------
+# Domains and keywords — edit freely. Add a new domain by adding a key here.
+# keywords/<domain>.txt (one keyword per line), if present, is appended.
+# -----------------------------------------------------------------------------
+keywords:
+  sports:
+    - bangladesh cricket
+    - bd cricket
+    - bpl
+    - shakib
+    - bangladesh football
+    - বাংলাদেশ ক্রিকেট
+    - টাইগার্স ক্রিকেট
+    - বিপিএল
+    - বাংলাদেশ ফুটবল
+  film_drama:
+    - bangla natok
+    - bangla movie
+    - বাংলা নাটক
+    - বাংলা সিনেমা
+    - eid natok
+  music:
+    - bangla song
+    - bangla gaan
+    - বাংলা গান
+    - coke studio bangla
+    - bangla band song
+  influencers_creators:
+    - bangla vlog
+    - bangladeshi youtuber
+    - বাংলা ভ্লগ
+    - bangla funny video
+  tv_reality:
+    - bangla reality show
+    - বাংলা রিয়েলিটি শো
+    - bangla talk show
+    - bangladesh tv show
+  lifestyle_vlogging:
+    - bangla lifestyle vlog
+    - dhaka vlog
+    - বাংলা লাইফস্টাইল
+    - bangla cooking vlog
+  gaming_streaming:
+    - bangla gaming
+    - free fire bangla
+    - pubg bangla
+    - বাংলা গেমিং
+    - bangla live stream
+
+# Optional platform-specific keyword overrides:
+# keywords_by_platform:
+#   tiktok:
+#     sports: [bdcricket, bangladeshcricket]
+keywords_by_platform: {}

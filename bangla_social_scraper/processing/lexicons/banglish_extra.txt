@@ -1,0 +1,2 @@
+# Your own additional Banglish words (one per line). Loaded in addition to
+# banglish.txt. Path configurable via language.extra_banglish_words_file.

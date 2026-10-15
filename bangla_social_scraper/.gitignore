@@ -1,0 +1,16 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+checkpoints/*
+!checkpoints/.gitkeep
+logs/*
+!logs/.gitkeep
+data/raw/*
+!data/raw/.gitkeep
+data/accepted/*
+!data/accepted/.gitkeep
+data/rejected/*
+!data/rejected/.gitkeep
