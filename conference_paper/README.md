@@ -69,6 +69,13 @@ Two scripts were added and run on the real `labels.csv` and split files:
 The paper is now **6 pages** (A4), and only two red TODOs remain: author e-mails/order, and the ADNI funding text.
 If review is double-blind, replace the *Code Availability* URL with "available upon acceptance".
 
+## Version 4: submission-ready
+
+- **Author e-mails added.** Order: Pinky, Samuel, Sarjil, then Momtaz, then Subah (supervisor last). Sarjil's name stays until Ma'am confirms; if he is removed, delete his name and `22101168` from the author block.
+- **Standard ADNI funding acknowledgement and investigator footnote added.** Compare the funding paragraph once with the text in your ADNI Data Use Agreement / IDA portal; ADNI occasionally updates the sponsor list.
+- **ADNI process:** the abstract is in IDA → Manuscript Submissions, and the team is e-mailing ADNI. According to the team, the conference needs no prior approval, only the correct acknowledgement.
+- **No red TODOs remain.** The paper is 6 A4 pages, and the PDF is 476 KB (limit 3 MB).
+
 ## Do these BEFORE submitting (in this order)
 
 1. **ADNI publication rules — check today; this is the most time-critical item.**
